@@ -12,3 +12,4 @@ venv
 .benchmarks/
 *.DS_Store
 __pycache__/
+.saal_downloads/
