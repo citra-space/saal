@@ -41,18 +41,22 @@ fn main() {
         .to_path_buf();
 
     println!("cargo:rerun-if-changed=manifest.json");
-    let assets_dir = Path::new("assets");
-    ensure_assets_downloaded(assets_dir);
-    ensure_libs_downloaded(lib_dir, &target_os, &target_arch);
+    let assets_dir = resolve_assets_dir(Path::new("assets"), &out_dir_path);
+    if assets_dir.starts_with(&out_dir_path) {
+        println!("cargo:rustc-env=SAAL_BUILD_ASSET_DIR={}", assets_dir.display());
+    }
+    let lib_dir = resolve_lib_dir(lib_dir, &out_dir_path, &target_os, &target_arch);
 
     // Iterate over each file in the lib/ directory.
-    for entry in fs::read_dir(lib_dir).expect("Failed to read lib directory") {
+    for entry in fs::read_dir(&lib_dir).expect("Failed to read lib directory") {
         let entry = entry.expect("Failed to access entry in lib directory");
         let path = entry.path();
 
         if path.is_file() {
-            // Tell Cargo to rerun the build script if this file changes.
-            println!("cargo:rerun-if-changed={}", path.display());
+            // Tell Cargo to rerun the build script if this source file changes.
+            if !lib_dir.starts_with(&out_dir_path) {
+                println!("cargo:rerun-if-changed={}", path.display());
+            }
 
             // Determine the destination path in the target directory.
             let file_name = path.file_name().expect("Invalid file name");
@@ -70,7 +74,9 @@ fn main() {
             let entry = entry.expect("Failed to access entry in assets directory");
             let path = entry.path();
             if path.is_file() {
-                println!("cargo:rerun-if-changed={}", path.display());
+                if !assets_dir.starts_with(&out_dir_path) {
+                    println!("cargo:rerun-if-changed={}", path.display());
+                }
                 let file_name = path.file_name().expect("Invalid asset file name");
                 for dest_dir in &asset_targets {
                     fs::create_dir_all(dest_dir).expect("Failed to create asset destination directory");
@@ -87,7 +93,7 @@ fn main() {
     if env::var("CARGO_FEATURE_PYTHON").is_ok() {
         let python_pkg_dir = Path::new("python").join("saal");
         fs::create_dir_all(&python_pkg_dir).expect("Failed to create python/saal directory");
-        for entry in fs::read_dir(lib_dir).expect("Failed to read lib directory") {
+        for entry in fs::read_dir(&lib_dir).expect("Failed to read lib directory") {
             let entry = entry.expect("Failed to access entry in lib directory");
             let path = entry.path();
 
@@ -106,7 +112,9 @@ fn main() {
                 let entry = entry.expect("Failed to access entry in assets directory");
                 let path = entry.path();
                 if path.is_file() {
-                    println!("cargo:rerun-if-changed={}", path.display());
+                    if !assets_dir.starts_with(&out_dir_path) {
+                        println!("cargo:rerun-if-changed={}", path.display());
+                    }
                     let file_name = path.file_name().expect("Invalid asset file name");
                     let dest_path = python_assets_dir.join(file_name);
                     fs::copy(&path, &dest_path).unwrap_or_else(|_| {
@@ -180,9 +188,22 @@ struct LibArchive {
     sha256: String,
 }
 
-fn ensure_assets_downloaded(dir: &Path) {
+fn resolve_assets_dir(source_dir: &Path, out_dir: &Path) -> PathBuf {
+    if let Some(path) = asset_directory_override() {
+        if assets_present_in_dir(&path) {
+            return path;
+        }
+    }
+
+    if assets_present_in_dir(source_dir) {
+        return source_dir.to_path_buf();
+    }
+
+    let out_assets_dir = out_dir.join("assets");
     if !Path::new("manifest.json").exists() {
-        return;
+        fs::create_dir_all(&out_assets_dir)
+            .unwrap_or_else(|e| panic!("Failed to create assets dir {}: {e}", out_assets_dir.display()));
+        return out_assets_dir;
     }
 
     let manifest = load_manifest().expect("Failed to read manifest.json");
@@ -190,21 +211,32 @@ fn ensure_assets_downloaded(dir: &Path) {
         panic!("Unsupported manifest version {}", manifest.version);
     }
 
-    if assets_available(dir) {
-        return;
-    }
-
     if let Some(archive) = &manifest.assets_archive {
-        download_assets_archive(archive, dir, manifest.release_version.as_deref());
-        if assets_available(dir) {
-            return;
+        download_assets_archive(archive, out_dir, manifest.release_version.as_deref());
+        if assets_present_in_dir(&out_assets_dir) {
+            return out_assets_dir;
+        }
+        if assets_present_in_dir(out_dir) {
+            return out_dir.to_path_buf();
         }
     }
 
-    fs::create_dir_all(dir).unwrap_or_else(|e| panic!("Failed to create assets dir {}: {e}", dir.display()));
+    fs::create_dir_all(&out_assets_dir)
+        .unwrap_or_else(|e| panic!("Failed to create assets dir {}: {e}", out_assets_dir.display()));
+    out_assets_dir
 }
 
-fn ensure_libs_downloaded(lib_dir: &Path, target_os: &str, target_arch: &str) {
+fn resolve_lib_dir(source_dir: &Path, out_dir: &Path, target_os: &str, target_arch: &str) -> PathBuf {
+    if lib_dir_has_files(source_dir) {
+        return source_dir.to_path_buf();
+    }
+
+    let out_lib_dir = out_dir.join(source_dir);
+    ensure_libs_downloaded(&out_lib_dir, out_dir, target_os, target_arch);
+    out_lib_dir
+}
+
+fn ensure_libs_downloaded(lib_dir: &Path, out_dir: &Path, target_os: &str, target_arch: &str) {
     if lib_dir_has_files(lib_dir) {
         return;
     }
@@ -230,8 +262,7 @@ fn ensure_libs_downloaded(lib_dir: &Path, target_os: &str, target_arch: &str) {
         parse_sha256(&archive.sha256).unwrap_or_else(|e| panic!("Invalid lib archive sha256: {e}"));
     let url = resolve_url(&archive.url, manifest.release_version.as_deref())
         .unwrap_or_else(|e| panic!("Invalid lib archive url: {e}"));
-    let root_dir = Path::new(".");
-    let tmp_dir = root_dir.join(".saal_downloads");
+    let tmp_dir = out_dir.join(".saal_downloads");
     fs::create_dir_all(&tmp_dir).unwrap_or_else(|e| panic!("Failed to create {}: {e}", tmp_dir.display()));
     let archive_path = tmp_dir.join("lib.zip");
 
@@ -250,32 +281,23 @@ fn lib_dir_has_files(dir: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn download_assets_archive(archive: &Archive, assets_dir: &Path, release_version: Option<&str>) {
+fn download_assets_archive(archive: &Archive, dest_root: &Path, release_version: Option<&str>) {
     let expected =
         parse_sha256(&archive.sha256).unwrap_or_else(|e| panic!("Invalid assets archive sha256: {e}"));
     let url =
         resolve_url(&archive.url, release_version).unwrap_or_else(|e| panic!("Invalid assets archive url: {e}"));
-    let root_dir = assets_dir.parent().unwrap_or_else(|| Path::new("."));
-    let tmp_dir = root_dir.join(".saal_downloads");
+    let tmp_dir = dest_root.join(".saal_downloads");
     fs::create_dir_all(&tmp_dir).unwrap_or_else(|e| panic!("Failed to create {}: {e}", tmp_dir.display()));
     let archive_path = tmp_dir.join("assets.zip");
 
     download_asset(&url, &archive_path, &expected)
         .unwrap_or_else(|e| panic!("Failed to download assets archive: {e}"));
-    extract_zip_into(&archive_path, root_dir);
+    extract_zip_into(&archive_path, dest_root);
     let _ = fs::remove_file(&archive_path);
 }
 
-fn assets_available(dir: &Path) -> bool {
-    let mut candidates = Vec::new();
-
-    if let Ok(path) = env::var("SAAL_ASSET_DIRECTORY") {
-        candidates.push(PathBuf::from(path));
-    }
-
-    candidates.push(dir.to_path_buf());
-
-    candidates.iter().any(|path| assets_present_in_dir(path))
+fn asset_directory_override() -> Option<PathBuf> {
+    env::var("SAAL_ASSET_DIRECTORY").ok().map(PathBuf::from)
 }
 
 fn assets_present_in_dir(dir: &Path) -> bool {
