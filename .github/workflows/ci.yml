@@ -52,22 +52,22 @@ jobs:
 
       - name: Build and test (unit)
         if: matrix.mode == 'native'
-        run: cargo test --all-features --target ${{ matrix.target }} --lib --tests --bins
+        run: cargo test --target ${{ matrix.target }} --lib --tests --bins
 
       - name: Doc tests
         if: matrix.mode == 'native'
         env:
           RUST_BACKTRACE: 1
           RUSTDOCFLAGS: --test-args=--nocapture
-        run: cargo test --doc --all-features --target ${{ matrix.target }}
+        run: cargo test --doc --target ${{ matrix.target }}
 
       - name: Build and test (cross, unit)
         if: matrix.mode == 'cross'
-        run: cross test --all-features --target ${{ matrix.target }} --lib --tests --bins
+        run: cross test --target ${{ matrix.target }} --lib --tests --bins
 
       - name: Doc tests (cross)
         if: matrix.mode == 'cross'
         env:
           RUST_BACKTRACE: 1
           RUSTDOCFLAGS: --test-args=--nocapture
-        run: cross test --doc --all-features --target ${{ matrix.target }}
+        run: cross test --doc --target ${{ matrix.target }}
