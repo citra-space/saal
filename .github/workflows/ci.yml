@@ -50,95 +50,10 @@ jobs:
         with:
           tool: cross
 
-      - name: Build and test (unit)
+      - name: Build and test
         if: matrix.mode == 'native'
-        run: cargo test --target ${{ matrix.target }} --lib --tests --bins
+        run: cargo test --target ${{ matrix.target }}
 
-      - name: Prepare rustdoc test-builder wrapper (unix)
-        if: matrix.mode == 'native' && runner.os != 'Windows'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p target
-          cat > target/rustdoc-test-builder-wrapper.sh <<'EOF'
-          #!/usr/bin/env bash
-          set -euo pipefail
-          test_builder="$1"
-          shift
-          "$test_builder" "$@"
-          out=""
-          for ((i=1; i<=$#; i++)); do
-            if [[ "${!i}" == "-o" ]]; then
-              j=$((i+1))
-              out="${!j}"
-              break
-            fi
-          done
-          if [[ -n "$out" && "$(basename "$out")" == "rust_out" ]]; then
-            shopt -s nullglob
-            libs=("$SAAL_LIB_DIR"/lib*.so "$SAAL_LIB_DIR"/lib*.dylib "$SAAL_LIB_DIR"/*.dll)
-            if [[ ${#libs[@]} -gt 0 ]]; then
-              cp "${libs[@]}" "$(dirname "$out")"/
-            fi
-          fi
-          EOF
-          chmod +x target/rustdoc-test-builder-wrapper.sh
-
-      - name: Doc tests (unix)
-        if: matrix.mode == 'native' && runner.os != 'Windows'
-        env:
-          RUST_BACKTRACE: 1
-          RUSTDOCFLAGS: --test-builder-wrapper ${{ github.workspace }}/target/rustdoc-test-builder-wrapper.sh --test-args=--nocapture
-          SAAL_LIB_DIR: ${{ github.workspace }}/target/${{ matrix.target }}/debug
-        shell: bash
-        run: cargo test --doc --target ${{ matrix.target }}
-
-      - name: Prepare rustdoc test-builder wrapper (windows)
-        if: matrix.mode == 'native' && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path target -Force | Out-Null
-          @"
-          @echo off
-          setlocal enabledelayedexpansion
-          set "TEST_BUILDER=%1"
-          shift
-          "%TEST_BUILDER%" %*
-          if errorlevel 1 exit /b %errorlevel%
-          set "OUT="
-          :parse
-          if "%1"=="" goto after
-          if "%1"=="-o" (
-            set "OUT=%2"
-            goto after
-          )
-          shift
-          goto parse
-          :after
-          if not "%OUT%"=="" (
-            for %%f in ("%OUT%") do (
-              set "OUTDIR=%%~dpf"
-              set "OUTNAME=%%~nxf"
-            )
-            if /I "!OUTNAME!"=="rust_out.exe" (
-              for %%l in ("%SAAL_LIB_DIR%\\*.dll") do copy /y "%%~fl" "!OUTDIR!" >NUL
-            )
-          )
-          "@ | Set-Content -Path target\\rustdoc-test-builder-wrapper.cmd -Encoding ASCII
-
-      - name: Doc tests (windows)
-        if: matrix.mode == 'native' && runner.os == 'Windows'
-        env:
-          RUST_BACKTRACE: 1
-          RUSTDOCFLAGS: --test-builder-wrapper ${{ github.workspace }}\\target\\rustdoc-test-builder-wrapper.cmd --test-args=--nocapture
-          SAAL_LIB_DIR: ${{ github.workspace }}\\target\\${{ matrix.target }}\\debug
-        shell: pwsh
-        run: cargo test --doc --target ${{ matrix.target }}
-
-      - name: Build and test (cross, unit)
+      - name: Build and test (cross)
         if: matrix.mode == 'cross'
-        run: cross test --target ${{ matrix.target }} --lib --tests --bins
-
-      - name: Doc tests (cross)
-        if: matrix.mode == 'cross'
-        run: echo "Skipping doctests for cross targets (doctest binaries are not runnable on this host)."
+        run: cross test --target ${{ matrix.target }}
