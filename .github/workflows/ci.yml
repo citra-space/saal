@@ -54,12 +54,104 @@ jobs:
         if: matrix.mode == 'native'
         run: cargo test --target ${{ matrix.target }} --lib --tests --bins
 
-      - name: Doc tests
-        if: matrix.mode == 'native'
+      - name: Build doctest binaries (unix)
+        if: matrix.mode == 'native' && runner.os != 'Windows'
+        env:
+          RUSTDOCFLAGS: --persist-doctests target/${{ matrix.target }}/doctests
+        shell: bash
+        run: cargo test --doc --no-run --target ${{ matrix.target }}
+
+      - name: Stage shared libs for doctests (unix)
+        if: matrix.mode == 'native' && runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          doctest_root="target/${{ matrix.target }}/doctests"
+          if [[ ! -d "$doctest_root" ]]; then
+            echo "Doctest directory not found: $doctest_root" >&2
+            exit 1
+          fi
+          mapfile -t doctest_dirs < <(find "$doctest_root" -type f -name rust_out -print0 | xargs -0 -n1 dirname | sort -u)
+          if [[ ${#doctest_dirs[@]} -eq 0 ]]; then
+            echo "No doctest binaries found under $doctest_root" >&2
+            exit 1
+          fi
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            libs=(target/${{ matrix.target }}/debug/lib*.so)
+          else
+            libs=(target/${{ matrix.target }}/debug/lib*.dylib)
+          fi
+          if [[ ${#libs[@]} -eq 0 ]]; then
+            echo "No shared libraries found in target/${{ matrix.target }}/debug" >&2
+            exit 1
+          fi
+          for dir in "${doctest_dirs[@]}"; do
+            cp "${libs[@]}" "$dir"/
+          done
+
+      - name: Run doctest binaries (unix)
+        if: matrix.mode == 'native' && runner.os != 'Windows'
         env:
           RUST_BACKTRACE: 1
-          RUSTDOCFLAGS: --test-args=--nocapture
-        run: cargo test --doc --target ${{ matrix.target }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          doctest_root="target/${{ matrix.target }}/doctests"
+          mapfile -t doctest_bins < <(find "$doctest_root" -type f -name rust_out -print0 | xargs -0 -n1 echo)
+          if [[ ${#doctest_bins[@]} -eq 0 ]]; then
+            echo "No doctest binaries found under $doctest_root" >&2
+            exit 1
+          fi
+          for bin in "${doctest_bins[@]}"; do
+            "$bin" --nocapture
+          done
+
+      - name: Build doctest binaries (windows)
+        if: matrix.mode == 'native' && runner.os == 'Windows'
+        env:
+          RUSTDOCFLAGS: --persist-doctests target/${{ matrix.target }}/doctests
+        shell: pwsh
+        run: cargo test --doc --no-run --target ${{ matrix.target }}
+
+      - name: Stage shared libs for doctests (windows)
+        if: matrix.mode == 'native' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $doctestRoot = "target/${{ matrix.target }}/doctests"
+          if (-not (Test-Path $doctestRoot)) {
+            Write-Error "Doctest directory not found: $doctestRoot"
+            exit 1
+          }
+          $bins = Get-ChildItem -Path $doctestRoot -Recurse -Filter rust_out -File
+          if (-not $bins) {
+            Write-Error "No doctest binaries found under $doctestRoot"
+            exit 1
+          }
+          $libs = Get-ChildItem -Path "target/${{ matrix.target }}/debug" -Filter *.dll -File
+          if (-not $libs) {
+            Write-Error "No shared libraries found in target/${{ matrix.target }}/debug"
+            exit 1
+          }
+          foreach ($bin in $bins) {
+            Copy-Item -Path $libs.FullName -Destination $bin.DirectoryName -Force
+          }
+
+      - name: Run doctest binaries (windows)
+        if: matrix.mode == 'native' && runner.os == 'Windows'
+        env:
+          RUST_BACKTRACE: 1
+        shell: pwsh
+        run: |
+          $doctestRoot = "target/${{ matrix.target }}/doctests"
+          $bins = Get-ChildItem -Path $doctestRoot -Recurse -Filter rust_out -File
+          if (-not $bins) {
+            Write-Error "No doctest binaries found under $doctestRoot"
+            exit 1
+          }
+          foreach ($bin in $bins) {
+            & $bin.FullName --nocapture
+          }
 
       - name: Build and test (cross, unit)
         if: matrix.mode == 'cross'
@@ -67,7 +159,4 @@ jobs:
 
       - name: Doc tests (cross)
         if: matrix.mode == 'cross'
-        env:
-          RUST_BACKTRACE: 1
-          RUSTDOCFLAGS: --test-args=--nocapture
-        run: cross test --doc --target ${{ matrix.target }}
+        run: echo "Skipping doctests for cross targets (doctest binaries are not runnable on this host)."
