@@ -138,6 +138,12 @@ impl From<Classification> for i8 {
     }
 }
 
+impl From<Classification> for u8 {
+    fn from(classification: Classification) -> Self {
+        classification as u8
+    }
+}
+
 impl From<&Classification> for &str {
     fn from(classification: &Classification) -> Self {
         match classification {
@@ -204,6 +210,22 @@ impl From<B3Type> for i8 {
             B3Type::Six => b'6' as i8,
             B3Type::Eight => b'8' as i8,
             B3Type::Nine => b'9' as i8,
+        }
+    }
+}
+
+impl From<B3Type> for u8 {
+    fn from(b3_type: B3Type) -> Self {
+        match b3_type {
+            B3Type::Zero => b'0',
+            B3Type::One => b'1',
+            B3Type::Two => b'2',
+            B3Type::Three => b'3',
+            B3Type::Four => b'4',
+            B3Type::Five => b'5',
+            B3Type::Six => b'6',
+            B3Type::Eight => b'8',
+            B3Type::Nine => b'9',
         }
     }
 }
