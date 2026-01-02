@@ -1,6 +1,11 @@
+use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
+use std::fs::File;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use zip::ZipArchive;
 
 fn main() {
     // Determine the target OS and architecture.
@@ -35,6 +40,11 @@ fn main() {
         .expect("Couldn't determine target directory")
         .to_path_buf();
 
+    println!("cargo:rerun-if-changed=manifest.json");
+    let assets_dir = Path::new("assets");
+    ensure_assets_downloaded(assets_dir);
+    ensure_libs_downloaded(lib_dir, &target_os, &target_arch);
+
     // Iterate over each file in the lib/ directory.
     for entry in fs::read_dir(lib_dir).expect("Failed to read lib directory") {
         let entry = entry.expect("Failed to access entry in lib directory");
@@ -54,12 +64,8 @@ fn main() {
         }
     }
 
-    let assets_dir = Path::new("assets");
     if assets_dir.exists() {
-        let asset_targets = [
-            target_dir.clone(),
-            target_dir.join("deps"),
-        ];
+        let asset_targets = [target_dir.clone(), target_dir.join("deps")];
         for entry in fs::read_dir(assets_dir).expect("Failed to read assets directory") {
             let entry = entry.expect("Failed to access entry in assets directory");
             let path = entry.path();
@@ -70,11 +76,7 @@ fn main() {
                     fs::create_dir_all(dest_dir).expect("Failed to create asset destination directory");
                     let dest_path = dest_dir.join(file_name);
                     fs::copy(&path, &dest_path).unwrap_or_else(|_| {
-                        panic!(
-                            "Failed to copy asset {} to {}",
-                            path.display(),
-                            dest_path.display()
-                        )
+                        panic!("Failed to copy asset {} to {}", path.display(), dest_path.display())
                     });
                 }
             }
@@ -97,7 +99,6 @@ fn main() {
             }
         }
 
-        let assets_dir = Path::new("assets");
         if assets_dir.exists() {
             let python_assets_dir = python_pkg_dir.join("assets");
             fs::create_dir_all(&python_assets_dir).expect("Failed to create python/saal/assets directory");
@@ -109,11 +110,7 @@ fn main() {
                     let file_name = path.file_name().expect("Invalid asset file name");
                     let dest_path = python_assets_dir.join(file_name);
                     fs::copy(&path, &dest_path).unwrap_or_else(|_| {
-                        panic!(
-                            "Failed to copy asset {} to {}",
-                            path.display(),
-                            dest_path.display()
-                        )
+                        panic!("Failed to copy asset {} to {}", path.display(), dest_path.display())
                     });
                 }
             }
@@ -130,11 +127,7 @@ fn main() {
                     let file_name = path.file_name().expect("Invalid stub file name");
                     let dest_path = python_pkg_dir.join(file_name);
                     fs::copy(&path, &dest_path).unwrap_or_else(|_| {
-                        panic!(
-                            "Failed to copy stub {} to {}",
-                            path.display(),
-                            dest_path.display()
-                        )
+                        panic!("Failed to copy stub {} to {}", path.display(), dest_path.display())
                     });
                 }
             }
@@ -160,4 +153,261 @@ fn main() {
     println!("cargo:rustc-link-lib=dylib=satstate");
     println!("cargo:rustc-link-lib=dylib=obs");
     println!("cargo:rustc-link-lib=dylib=sensor");
+}
+
+#[derive(Deserialize)]
+struct Manifest {
+    version: u32,
+    #[serde(default)]
+    release_version: Option<String>,
+    #[serde(default)]
+    assets_archive: Option<Archive>,
+    #[serde(default)]
+    lib_archives: Vec<LibArchive>,
+}
+
+#[derive(Deserialize)]
+struct Archive {
+    url: String,
+    sha256: String,
+}
+
+#[derive(Deserialize)]
+struct LibArchive {
+    os: String,
+    arch: String,
+    url: String,
+    sha256: String,
+}
+
+fn ensure_assets_downloaded(dir: &Path) {
+    if !Path::new("manifest.json").exists() {
+        return;
+    }
+
+    let manifest = load_manifest().expect("Failed to read manifest.json");
+    if manifest.version != 1 {
+        panic!("Unsupported manifest version {}", manifest.version);
+    }
+
+    if assets_available(dir) {
+        return;
+    }
+
+    if let Some(archive) = &manifest.assets_archive {
+        download_assets_archive(archive, dir, manifest.release_version.as_deref());
+        if assets_available(dir) {
+            return;
+        }
+    }
+
+    fs::create_dir_all(dir).unwrap_or_else(|e| panic!("Failed to create assets dir {}: {e}", dir.display()));
+}
+
+fn ensure_libs_downloaded(lib_dir: &Path, target_os: &str, target_arch: &str) {
+    if lib_dir_has_files(lib_dir) {
+        return;
+    }
+    if !Path::new("manifest.json").exists() {
+        return;
+    }
+
+    let manifest = load_manifest().expect("Failed to read manifest.json");
+    if manifest.version != 1 {
+        panic!("Unsupported manifest version {}", manifest.version);
+    }
+
+    let archive = manifest
+        .lib_archives
+        .iter()
+        .find(|entry| entry.os == target_os && entry.arch == target_arch);
+
+    let Some(archive) = archive else {
+        return;
+    };
+
+    let expected =
+        parse_sha256(&archive.sha256).unwrap_or_else(|e| panic!("Invalid lib archive sha256: {e}"));
+    let url = resolve_url(&archive.url, manifest.release_version.as_deref())
+        .unwrap_or_else(|e| panic!("Invalid lib archive url: {e}"));
+    let root_dir = Path::new(".");
+    let tmp_dir = root_dir.join(".saal_downloads");
+    fs::create_dir_all(&tmp_dir).unwrap_or_else(|e| panic!("Failed to create {}: {e}", tmp_dir.display()));
+    let archive_path = tmp_dir.join("lib.zip");
+
+    download_asset(&url, &archive_path, &expected)
+        .unwrap_or_else(|e| panic!("Failed to download lib archive: {e}"));
+    extract_lib_zip_into(&archive_path, lib_dir);
+    let _ = fs::remove_file(&archive_path);
+}
+
+fn lib_dir_has_files(dir: &Path) -> bool {
+    if !dir.exists() {
+        return false;
+    }
+    fs::read_dir(dir)
+        .map(|mut entries| entries.any(|entry| entry.map(|e| e.path().is_file()).unwrap_or(false)))
+        .unwrap_or(false)
+}
+
+fn download_assets_archive(archive: &Archive, assets_dir: &Path, release_version: Option<&str>) {
+    let expected =
+        parse_sha256(&archive.sha256).unwrap_or_else(|e| panic!("Invalid assets archive sha256: {e}"));
+    let url =
+        resolve_url(&archive.url, release_version).unwrap_or_else(|e| panic!("Invalid assets archive url: {e}"));
+    let root_dir = assets_dir.parent().unwrap_or_else(|| Path::new("."));
+    let tmp_dir = root_dir.join(".saal_downloads");
+    fs::create_dir_all(&tmp_dir).unwrap_or_else(|e| panic!("Failed to create {}: {e}", tmp_dir.display()));
+    let archive_path = tmp_dir.join("assets.zip");
+
+    download_asset(&url, &archive_path, &expected)
+        .unwrap_or_else(|e| panic!("Failed to download assets archive: {e}"));
+    extract_zip_into(&archive_path, root_dir);
+    let _ = fs::remove_file(&archive_path);
+}
+
+fn assets_available(dir: &Path) -> bool {
+    let mut candidates = Vec::new();
+
+    if let Ok(path) = env::var("SAAL_ASSET_DIRECTORY") {
+        candidates.push(PathBuf::from(path));
+    }
+
+    candidates.push(dir.to_path_buf());
+
+    candidates.iter().any(|path| assets_present_in_dir(path))
+}
+
+fn assets_present_in_dir(dir: &Path) -> bool {
+    if !dir.exists() {
+        return false;
+    }
+    fs::read_dir(dir)
+        .map(|mut entries| entries.any(|entry| entry.map(|e| e.path().is_file()).unwrap_or(false)))
+        .unwrap_or(false)
+}
+
+fn load_manifest() -> Result<Manifest, String> {
+    let content = fs::read_to_string("manifest.json").map_err(|e| format!("failed to read manifest.json: {e}"))?;
+    serde_json::from_str(&content).map_err(|e| format!("failed to parse manifest.json: {e}"))
+}
+
+fn resolve_url(template: &str, release_version: Option<&str>) -> Result<String, String> {
+    if template.contains("{version}") || template.contains("{release_version}") {
+        let Some(version) = release_version else {
+            return Err("release_version missing in manifest".to_string());
+        };
+        Ok(template
+            .replace("{version}", version)
+            .replace("{release_version}", version))
+    } else {
+        Ok(template.to_string())
+    }
+}
+
+fn extract_zip_into(zip_path: &Path, dest_root: &Path) {
+    let file = File::open(zip_path).unwrap_or_else(|e| panic!("Failed to open {}: {e}", zip_path.display()));
+    let mut archive =
+        ZipArchive::new(file).unwrap_or_else(|e| panic!("Invalid zip {}: {e}", zip_path.display()));
+
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).expect("Failed to read zip entry");
+        let Some(entry_path) = entry.enclosed_name() else {
+            continue;
+        };
+        let out_path = dest_root.join(entry_path);
+        if entry.is_dir() {
+            fs::create_dir_all(&out_path)
+                .unwrap_or_else(|e| panic!("Failed to create {}: {e}", out_path.display()));
+            continue;
+        }
+
+        if let Some(parent) = out_path.parent() {
+            fs::create_dir_all(parent).unwrap_or_else(|e| panic!("Failed to create {}: {e}", parent.display()));
+        }
+        let mut out_file =
+            File::create(&out_path).unwrap_or_else(|e| panic!("Failed to create {}: {e}", out_path.display()));
+        std::io::copy(&mut entry, &mut out_file)
+            .unwrap_or_else(|e| panic!("Failed to write {}: {e}", out_path.display()));
+    }
+}
+
+fn extract_lib_zip_into(zip_path: &Path, lib_dir: &Path) {
+    let leaf = lib_dir.file_name().and_then(|name| name.to_str()).unwrap_or("");
+    let top_level = zip_uniform_top_level(zip_path);
+    let dest_root = match top_level.as_deref() {
+        Some(name) if name == leaf => lib_dir.parent().unwrap_or_else(|| Path::new(".")),
+        _ => lib_dir,
+    };
+    extract_zip_into(zip_path, dest_root);
+}
+
+fn zip_uniform_top_level(zip_path: &Path) -> Option<String> {
+    let file = File::open(zip_path).ok()?;
+    let mut archive = ZipArchive::new(file).ok()?;
+    let mut top_level: Option<String> = None;
+
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i).ok()?;
+        let path = entry.enclosed_name()?;
+        let mut components = path.components();
+        let first = components.next()?.as_os_str().to_str()?;
+        let second = components.next();
+        if second.is_none() && entry.is_file() {
+            return None;
+        }
+
+        match &top_level {
+            None => top_level = Some(first.to_string()),
+            Some(existing) if existing != first => return None,
+            Some(_) => {}
+        }
+    }
+
+    top_level
+}
+
+fn parse_sha256(value: &str) -> Result<String, String> {
+    let mut parts = value.splitn(2, ':');
+    let algo = parts.next().unwrap_or("");
+    let hash = parts.next().unwrap_or("");
+    if algo != "sha256" || hash.len() != 64 {
+        return Err(format!("invalid sha256 value: {value}"));
+    }
+    Ok(hash.to_ascii_lowercase())
+}
+
+fn download_asset(url: &str, path: &Path, expected: &str) -> Result<(), String> {
+    let response = ureq::get(url)
+        .call()
+        .map_err(|e| format!("failed to download {url}: {e}"))?;
+    let mut reader = response.into_reader();
+    let tmp_path = path.with_extension("download");
+    let mut file = File::create(&tmp_path).map_err(|e| format!("failed to create {}: {e}", tmp_path.display()))?;
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 8192];
+
+    loop {
+        let read = reader
+            .read(&mut buf)
+            .map_err(|e| format!("failed to read {url}: {e}"))?;
+        if read == 0 {
+            break;
+        }
+        file.write_all(&buf[..read])
+            .map_err(|e| format!("failed to write {}: {e}", tmp_path.display()))?;
+        hasher.update(&buf[..read]);
+    }
+
+    let actual = hex::encode(hasher.finalize());
+    if actual != expected {
+        let _ = fs::remove_file(&tmp_path);
+        return Err(format!("sha256 mismatch for {url}: expected {expected}, got {actual}"));
+    }
+
+    if path.exists() {
+        fs::remove_file(path).map_err(|e| format!("failed to remove {}: {e}", path.display()))?;
+    }
+    fs::rename(&tmp_path, path).map_err(|e| format!("failed to move {}: {e}", tmp_path.display()))?;
+    Ok(())
 }

@@ -16,11 +16,21 @@ exclude = [
   "AI.md",
   "CONTRIBUTING.md",
   "agents.yaml",
+  "assets/**",
+  "lib/**",
 ]
 
 [dependencies]
 ctor = "0.6.3"
 pyo3 = { version = "0.27.2", optional = true }
+
+[build-dependencies]
+hex = "0.4.3"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+sha2 = "0.10.8"
+ureq = "2.10.1"
+zip = "2.2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

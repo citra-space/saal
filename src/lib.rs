@@ -389,18 +389,26 @@ fn initialize() {
     }
 }
 
+fn asset_directory_override() -> Option<PathBuf> {
+    std::env::var("SAAL_ASSET_DIRECTORY").ok().map(PathBuf::from)
+}
+
 fn get_asset_directory() -> Option<PathBuf> {
-    if let Ok(path) = std::env::var("SAAL_ASSET_DIRECTORY") {
-        let path = PathBuf::from(path);
-        if path.exists() {
-            return Some(path);
-        }
+    if let Some(path) = asset_directory_override()
+        && path.exists()
+    {
+        return Some(path);
     }
 
     let exe_dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
     let manifest_assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
+    let cwd_assets = std::env::current_dir().ok().map(|dir| dir.join("assets"));
     if exe_dir.join("assets").exists() {
         return Some(exe_dir.join("assets"));
+    } else if let Some(path) = cwd_assets {
+        if path.exists() {
+            return Some(path);
+        }
     } else if manifest_assets.exists() {
         return Some(manifest_assets);
     }
