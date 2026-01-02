@@ -10,3 +10,5 @@ venv
 .mypy_cache/
 .pytest_cache/
 .benchmarks/
+*.DS_Store
+__pycache__/
