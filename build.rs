@@ -70,7 +70,7 @@ fn main() {
 
     if assets_dir.exists() {
         let asset_targets = [target_dir.clone(), target_dir.join("deps")];
-        for entry in fs::read_dir(assets_dir).expect("Failed to read assets directory") {
+        for entry in fs::read_dir(&assets_dir).expect("Failed to read assets directory") {
             let entry = entry.expect("Failed to access entry in assets directory");
             let path = entry.path();
             if path.is_file() {
@@ -108,7 +108,7 @@ fn main() {
         if assets_dir.exists() {
             let python_assets_dir = python_pkg_dir.join("assets");
             fs::create_dir_all(&python_assets_dir).expect("Failed to create python/saal/assets directory");
-            for entry in fs::read_dir(assets_dir).expect("Failed to read assets directory") {
+            for entry in fs::read_dir(&assets_dir).expect("Failed to read assets directory") {
                 let entry = entry.expect("Failed to access entry in assets directory");
                 let path = entry.path();
                 if path.is_file() {
