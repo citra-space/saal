@@ -6,12 +6,12 @@ authors = ["Brandon Sexton <brandon.taylor.sexton@gmail.com>"]
 description = "Wrappers for the Standardized Astrodynamics Algorithms Library (SAAL)"
 license = "MIT"
 exclude = [
-  "tests",
-  "benches",
-  "benchmarks",
-  "skills",
-  "venv",
-  "truth",
+  "tests/**",
+  "benches/**",
+  "benchmarks/**",
+  "skills/**",
+  "venv/**",
+  "truth/**",
   "fort.*",
   "AI.md",
   "CONTRIBUTING.md",
