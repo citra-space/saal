@@ -1,0 +1,33 @@
+[project]
+name = "saal"
+version = "0.1.0"
+dependencies = []
+description = "A typed Python wrapper for the Standardized Astrodynamics Algorithms Library."
+authors = [
+  { name = "Brandon Sexton", email = "brandon.taylor.sexton@gmail.com" },
+]
+license = "MIT"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+  "maturin",
+  "saal[test]",
+  "mkdocstrings[python]",
+  "mkdocs-material",
+  "markdown-include",
+  "tomli; python_version < '3.11'",
+]
+test = ["pytest", "pytest-benchmark"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "saal._saal"
+include = ["saal/*", "saal/assets/*"]
+generate-stub = false
+bindings = "pyo3"
+features = ["python"]
+
+[build-system]
+requires = ["maturin"]
+build-backend = "maturin"
