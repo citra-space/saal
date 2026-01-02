@@ -54,104 +54,88 @@ jobs:
         if: matrix.mode == 'native'
         run: cargo test --target ${{ matrix.target }} --lib --tests --bins
 
-      - name: Build doctest binaries (unix)
-        if: matrix.mode == 'native' && runner.os != 'Windows'
-        env:
-          RUSTDOCFLAGS: --persist-doctests target/${{ matrix.target }}/doctests
-        shell: bash
-        run: cargo test --doc --no-run --target ${{ matrix.target }}
-
-      - name: Stage shared libs for doctests (unix)
+      - name: Prepare rustc wrapper for doctests (unix)
         if: matrix.mode == 'native' && runner.os != 'Windows'
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          doctest_root="target/${{ matrix.target }}/doctests"
-          if [[ ! -d "$doctest_root" ]]; then
-            echo "Doctest directory not found: $doctest_root" >&2
-            exit 1
-          fi
-          mapfile -t doctest_dirs < <(find "$doctest_root" -type f -name rust_out -print0 | xargs -0 -n1 dirname | sort -u)
-          if [[ ${#doctest_dirs[@]} -eq 0 ]]; then
-            echo "No doctest binaries found under $doctest_root" >&2
-            exit 1
-          fi
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            libs=(target/${{ matrix.target }}/debug/lib*.so)
-          else
-            libs=(target/${{ matrix.target }}/debug/lib*.dylib)
-          fi
-          if [[ ${#libs[@]} -eq 0 ]]; then
-            echo "No shared libraries found in target/${{ matrix.target }}/debug" >&2
-            exit 1
-          fi
-          for dir in "${doctest_dirs[@]}"; do
-            cp "${libs[@]}" "$dir"/
+          mkdir -p target
+          cat > target/rustc-doctest-wrapper.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          real_rustc="$1"
+          shift
+          "$real_rustc" "$@"
+          out=""
+          for ((i=1; i<=$#; i++)); do
+            if [[ "${!i}" == "-o" ]]; then
+              j=$((i+1))
+              out="${!j}"
+              break
+            fi
           done
+          if [[ -n "$out" && "$(basename "$out")" == "rust_out" ]]; then
+            shopt -s nullglob
+            libs=("$SAAL_LIB_DIR"/lib*.so "$SAAL_LIB_DIR"/lib*.dylib "$SAAL_LIB_DIR"/*.dll)
+            if [[ ${#libs[@]} -gt 0 ]]; then
+              cp "${libs[@]}" "$(dirname "$out")"/
+            fi
+          fi
+          EOF
+          chmod +x target/rustc-doctest-wrapper.sh
 
-      - name: Run doctest binaries (unix)
+      - name: Doc tests (unix)
         if: matrix.mode == 'native' && runner.os != 'Windows'
         env:
           RUST_BACKTRACE: 1
+          RUSTDOCFLAGS: --test-args=--nocapture
+          RUSTC_WRAPPER: ${{ github.workspace }}/target/rustc-doctest-wrapper.sh
+          SAAL_LIB_DIR: ${{ github.workspace }}/target/${{ matrix.target }}/debug
         shell: bash
-        run: |
-          set -euo pipefail
-          doctest_root="target/${{ matrix.target }}/doctests"
-          mapfile -t doctest_bins < <(find "$doctest_root" -type f -name rust_out -print0 | xargs -0 -n1 echo)
-          if [[ ${#doctest_bins[@]} -eq 0 ]]; then
-            echo "No doctest binaries found under $doctest_root" >&2
-            exit 1
-          fi
-          for bin in "${doctest_bins[@]}"; do
-            "$bin" --nocapture
-          done
+        run: cargo test --doc --target ${{ matrix.target }}
 
-      - name: Build doctest binaries (windows)
-        if: matrix.mode == 'native' && runner.os == 'Windows'
-        env:
-          RUSTDOCFLAGS: --persist-doctests target/${{ matrix.target }}/doctests
-        shell: pwsh
-        run: cargo test --doc --no-run --target ${{ matrix.target }}
-
-      - name: Stage shared libs for doctests (windows)
+      - name: Prepare rustc wrapper for doctests (windows)
         if: matrix.mode == 'native' && runner.os == 'Windows'
         shell: pwsh
         run: |
-          $doctestRoot = "target/${{ matrix.target }}/doctests"
-          if (-not (Test-Path $doctestRoot)) {
-            Write-Error "Doctest directory not found: $doctestRoot"
-            exit 1
-          }
-          $bins = Get-ChildItem -Path $doctestRoot -Recurse -Filter rust_out -File
-          if (-not $bins) {
-            Write-Error "No doctest binaries found under $doctestRoot"
-            exit 1
-          }
-          $libs = Get-ChildItem -Path "target/${{ matrix.target }}/debug" -Filter *.dll -File
-          if (-not $libs) {
-            Write-Error "No shared libraries found in target/${{ matrix.target }}/debug"
-            exit 1
-          }
-          foreach ($bin in $bins) {
-            Copy-Item -Path $libs.FullName -Destination $bin.DirectoryName -Force
-          }
+          New-Item -ItemType Directory -Path target -Force | Out-Null
+          @"
+          @echo off
+          setlocal enabledelayedexpansion
+          set "REAL_RUSTC=%1"
+          shift
+          "%REAL_RUSTC%" %*
+          if errorlevel 1 exit /b %errorlevel%
+          set "OUT="
+          :parse
+          if "%1"=="" goto after
+          if "%1"=="-o" (
+            set "OUT=%2"
+            goto after
+          )
+          shift
+          goto parse
+          :after
+          if not "%OUT%"=="" (
+            for %%f in ("%OUT%") do (
+              set "OUTDIR=%%~dpf"
+              set "OUTNAME=%%~nxf"
+            )
+            if /I "!OUTNAME!"=="rust_out.exe" (
+              for %%l in ("%SAAL_LIB_DIR%\\*.dll") do copy /y "%%~fl" "!OUTDIR!" >NUL
+            )
+          )
+          "@ | Set-Content -Path target\\rustc-doctest-wrapper.cmd -Encoding ASCII
 
-      - name: Run doctest binaries (windows)
+      - name: Doc tests (windows)
         if: matrix.mode == 'native' && runner.os == 'Windows'
         env:
           RUST_BACKTRACE: 1
+          RUSTDOCFLAGS: --test-args=--nocapture
+          RUSTC_WRAPPER: ${{ github.workspace }}\\target\\rustc-doctest-wrapper.cmd
+          SAAL_LIB_DIR: ${{ github.workspace }}\\target\\${{ matrix.target }}\\debug
         shell: pwsh
-        run: |
-          $doctestRoot = "target/${{ matrix.target }}/doctests"
-          $bins = Get-ChildItem -Path $doctestRoot -Recurse -Filter rust_out -File
-          if (-not $bins) {
-            Write-Error "No doctest binaries found under $doctestRoot"
-            exit 1
-          }
-          foreach ($bin in $bins) {
-            & $bin.FullName --nocapture
-          }
+        run: cargo test --doc --target ${{ matrix.target }}
 
       - name: Build and test (cross, unit)
         if: matrix.mode == 'cross'
