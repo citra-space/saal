@@ -1,6 +1,6 @@
 [package]
 name = "saal"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["Brandon Sexton <brandon.taylor.sexton@gmail.com>"]
 description = "Wrappers for the Standardized Astrodynamics Algorithms Library (SAAL)"

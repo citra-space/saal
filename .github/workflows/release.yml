@@ -21,10 +21,12 @@ jobs:
           - name: linux-x86_64
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            maturin_target: x86_64
             maturin_args: --manylinux 2014
           - name: linux-aarch64
             runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
+            maturin_target: aarch64
             maturin_args: --manylinux 2014
           - name: macos-x86_64
             runner: macos-15-intel
@@ -63,37 +65,13 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Update versions
-        run: |
-          python - <<'PY'
-          import os
-          import pathlib
-          import re
-          version = os.environ["VERSION"]
-
-          def replace(path):
-              text = pathlib.Path(path).read_text()
-              new = re.sub(
-                  r'(^version\s*=\s*")[^"]+(")',
-                  r"\g<1>%s\2" % version,
-                  text,
-                  count=1,
-                  flags=re.M,
-              )
-              if new == text:
-                  raise SystemExit(f"Version line not found in {path}")
-              pathlib.Path(path).write_text(new)
-
-          replace("Cargo.toml")
-          replace("pyproject.toml")
-          PY
-
       - name: Build wheel (linux manylinux)
         if: ${{ startsWith(matrix.name, 'linux-') }}
         uses: PyO3/maturin-action@v1
         with:
-          target: ${{ matrix.target }}
-          args: --release ${{ matrix.maturin_args }}
+          target: ${{ matrix.maturin_target }}
+          manylinux: 2014
+          args: --release
 
       - name: Build wheel
         if: ${{ !startsWith(matrix.name, 'linux-') }}
@@ -135,31 +113,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Update versions
-        run: |
-          python - <<'PY'
-          import os
-          import pathlib
-          import re
-          version = os.environ["VERSION"]
-
-          def replace(path):
-              text = pathlib.Path(path).read_text()
-              new = re.sub(
-                  r'(^version\s*=\s*")[^"]+(")',
-                  r"\g<1>%s\2" % version,
-                  text,
-                  count=1,
-                  flags=re.M,
-              )
-              if new == text:
-                  raise SystemExit(f"Version line not found in {path}")
-              pathlib.Path(path).write_text(new)
-
-          replace("Cargo.toml")
-          replace("pyproject.toml")
-          PY
 
       - name: Build sdist
         run: |
@@ -244,31 +197,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Update versions
-        run: |
-          python - <<'PY'
-          import os
-          import pathlib
-          import re
-          version = os.environ["VERSION"]
-
-          def replace(path):
-              text = pathlib.Path(path).read_text()
-              new = re.sub(
-                  r'(^version\s*=\s*")[^"]+(")',
-                  r"\g<1>%s\2" % version,
-                  text,
-                  count=1,
-                  flags=re.M,
-              )
-              if new == text:
-                  raise SystemExit(f"Version line not found in {path}")
-              pathlib.Path(path).write_text(new)
-
-          replace("Cargo.toml")
-          replace("pyproject.toml")
-          PY
 
       - name: Publish to crates.io
         env:

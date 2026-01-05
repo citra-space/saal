@@ -13,3 +13,4 @@ venv
 *.DS_Store
 __pycache__/
 .saal_downloads/
+*.pyc
