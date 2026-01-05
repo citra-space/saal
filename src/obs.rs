@@ -1163,7 +1163,12 @@ impl ParsedB3 {
             )
         };
 
-        let obs_type_char: i8 = obs_type.value().chars().next().unwrap_or('X') as i8;
+        let obs_type_char: c_char = obs_type
+            .value()
+            .as_bytes()
+            .first()
+            .copied()
+            .unwrap_or(b'X') as c_char;
         let b3_type = unsafe { ObsTypeCToI(obs_type_char) };
         let mut azimuth: Option<f64> = None;
         let mut right_ascension: Option<f64> = None;
@@ -1284,8 +1289,13 @@ impl ParsedB3 {
     pub fn get_line(&self) -> Result<String, String> {
         self._validate_fields()?;
         let mut output_str = GetSetString::new();
-        let ob_type = unsafe { ObsTypeIToC(self.observation_type) } as i8;
-        let sec_char = self.classification.chars().next().unwrap_or('U') as i8;
+        let ob_type: c_char = unsafe { ObsTypeIToC(self.observation_type) };
+        let sec_char: c_char = self
+            .classification
+            .as_bytes()
+            .first()
+            .copied()
+            .unwrap_or(b'U') as c_char;
 
         unsafe {
             ObsFieldsToB3Card(
