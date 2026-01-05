@@ -10,6 +10,9 @@ jobs:
   test:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -54,14 +57,24 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python deps
-        run: python -m pip install --upgrade pip maturin pytest
+        run: |
+          python -m venv .venv
+          PYTHON_BIN=".venv/bin/python"
+          if [ -f ".venv/Scripts/python.exe" ]; then
+            PYTHON_BIN=".venv/Scripts/python.exe"
+          fi
+          "$PYTHON_BIN" -m pip install --upgrade pip maturin pytest
 
       - name: Test Rust
         if: matrix.mode == 'native'
         run: cargo test --target ${{ matrix.target }} --lib --tests --bins
 
-      - name: Build and test Python
+      - name: Test Python
         if: matrix.mode == 'native'
         run: |
-          maturin develop --release --target ${{ matrix.target }}
-          pytest
+          PYTHON_BIN=".venv/bin/python"
+          if [ -f ".venv/Scripts/python.exe" ]; then
+            PYTHON_BIN=".venv/Scripts/python.exe"
+          fi
+          "$PYTHON_BIN" -m maturin develop --release --target ${{ matrix.target }}
+          "$PYTHON_BIN" -m pytest
