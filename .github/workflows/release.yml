@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - 'v*.*.*'
 
 jobs:
   build-wheels:
@@ -31,15 +31,15 @@ jobs:
           - name: macos-x86_64
             runner: macos-15-intel
             target: x86_64-apple-darwin
-            maturin_args: ""
+            maturin_args: ''
           - name: macos-aarch64
             runner: macos-latest
             target: aarch64-apple-darwin
-            maturin_args: ""
+            maturin_args: ''
           - name: windows-x86_64
             runner: windows-latest
             target: x86_64-pc-windows-msvc
-            maturin_args: ""
+            maturin_args: ''
 
     steps:
       - name: Checkout
@@ -63,7 +63,7 @@ jobs:
         if: ${{ !startsWith(matrix.name, 'linux-') }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Build wheel (linux manylinux)
         if: ${{ startsWith(matrix.name, 'linux-') }}
@@ -112,7 +112,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Build sdist
         run: |
@@ -135,6 +135,31 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PyPI version matches tag
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag $tag does not match v.x.y.z"
+            exit 1
+          fi
+          version="${tag#v}"
+          py_version="$(awk -F' = ' '
+            $0=="[project]"{in=1;next}
+            /^\[/{if(in)exit}
+            in && $1=="version"{gsub(/"/,"",$2);print $2;exit}
+          ' pyproject.toml)"
+          if [ -z "$py_version" ]; then
+            echo "version not found in pyproject.toml"
+            exit 1
+          fi
+          if [ "$py_version" != "$version" ]; then
+            echo "pyproject.toml version $py_version does not match tag $version"
+            exit 1
+          fi
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -146,6 +171,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
+          skip-existing: true
 
   create-github-release:
     name: Create GitHub release
@@ -181,14 +207,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate tag
+      - name: Validate tag and Cargo version
         run: |
           tag="${GITHUB_REF_NAME}"
           if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Tag $tag does not match v.x.y.z"
             exit 1
           fi
-          echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
+          version="${tag#v}"
+          cargo_version="$(awk -F' = ' '
+            $0=="[package]"{in=1;next}
+            /^\[/{if(in)exit}
+            in && $1=="version"{gsub(/"/,"",$2);print $2;exit}
+          ' Cargo.toml)"
+          if [ -z "$cargo_version" ]; then
+            echo "version not found in Cargo.toml [package]"
+            exit 1
+          fi
+          if [ "$cargo_version" != "$version" ]; then
+            echo "Cargo.toml version $cargo_version does not match tag $version"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -196,7 +236,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Publish to crates.io
         env:
