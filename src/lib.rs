@@ -6,7 +6,6 @@ pub mod environment;
 // pub mod ephemeris;
 #[cfg(feature = "python")]
 mod bindings;
-pub mod enums;
 mod get_set_string;
 pub mod obs;
 pub mod satellite;
@@ -18,7 +17,6 @@ pub mod time;
 pub mod tle;
 
 use ctor::ctor;
-use enums::{DuplicateKeyMode, ElsetKeyMode, KeyMode};
 pub use get_set_string::GetSetString;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
@@ -129,25 +127,25 @@ pub const DUPKEY: i32 = 0;
 
 // Different key mode options for all elset-satKey/obs-obsKey/sensor-senKey
 // Default - duplicate elsets/observations/sensors can not be loaded in their binary trees
-pub const ALL_KEYMODE_NODUP: isize = 0;
+pub const ALL_KEYMODE_NODUP: i32 = 0;
 // Allow duplicate elsets/obs/sensor to be loaded and have direct memory access (DMA - no duplication check and no binary tree)
-pub const ALL_KEYMODE_DMA: isize = 1;
+pub const ALL_KEYMODE_DMA: i32 = 1;
 
 //*******************************************************************************
 
 // Different key mode options for elset satKey
 // Default - duplicate elsets can not be loaded in binary tree
-pub const ELSET_KEYMODE_NODUP: isize = 0;
+pub const ELSET_KEYMODE_NODUP: i32 = 0;
 // Allow duplicate elsets to be loaded and have direct memory access (DMA - no duplication check and no binary tree)
-pub const ELSET_KEYMODE_DMA: isize = 1;
+pub const ELSET_KEYMODE_DMA: i32 = 1;
 
 //*******************************************************************************
 
 // Different duplication key mode options (apply to non DMA mode only)
 // Returning (satellite/sensor/obs) key is zero to signify the existing data/key was already in memory
-pub const DUPKEY_ZERO: isize = 0;
+pub const DUPKEY_ZERO: i32 = 0;
 // Return actual (satellite/sensor/obs) key regardless of the key/data duplication
-pub const DUPKEY_ACTUAL: isize = 1;
+pub const DUPKEY_ACTUAL: i32 = 1;
 
 //*******************************************************************************
 
@@ -168,13 +166,13 @@ pub const DEFAULT_SENSOR_NUMBER: i32 = 999;
 
 // Options used in GetLoaded()
 // ascending order
-pub const IDX_ORDER_ASC: isize = 0;
+pub const IDX_ORDER_ASC: i32 = 0;
 // descending order
-pub const IDX_ORDER_DES: isize = 1;
+pub const IDX_ORDER_DES: i32 = 1;
 // order as read
-pub const IDX_ORDER_READ: isize = 2;
+pub const IDX_ORDER_READ: i32 = 2;
 // tree traversal order
-pub const IDX_ORDER_QUICK: isize = 9;
+pub const IDX_ORDER_QUICK: i32 = 9;
 
 pub const DLL_VERSION: &str = "9.6";
 
@@ -197,11 +195,11 @@ pub fn get_last_error_message() -> String {
 /// ```bash
 /// 1
 /// ```
-pub fn get_key_mode() -> Result<KeyMode, String> {
-    let key_mode = unsafe { GetAllKeyMode() } as isize;
+pub fn get_key_mode() -> Result<i32, String> {
+    let key_mode = unsafe { GetAllKeyMode() };
     match key_mode {
-        ALL_KEYMODE_DMA => Ok(KeyMode::DirectMemoryAccess),
-        ALL_KEYMODE_NODUP => Ok(KeyMode::NoDuplicates),
+        ALL_KEYMODE_DMA => Ok(key_mode),
+        ALL_KEYMODE_NODUP => Ok(key_mode),
         _ => Err(get_last_error_message()),
     }
 }
@@ -210,16 +208,16 @@ pub fn get_key_mode() -> Result<KeyMode, String> {
 ///
 /// Example:
 /// ```rust
-/// saal::set_key_mode(saal::enums::KeyMode::NoDuplicates).unwrap();
-/// println!("{}", saal::get_key_mode().unwrap() as i32);
+/// saal::set_key_mode(saal::ALL_KEYMODE_NODUP).unwrap();
+/// println!("{}", saal::get_key_mode().unwrap());
 /// ```
 ///
 /// Output:
 /// ```bash
 /// 0
 /// ```
-pub fn set_key_mode(key_mode: KeyMode) -> Result<(), String> {
-    let result = unsafe { SetAllKeyMode(key_mode as i32) };
+pub fn set_key_mode(key_mode: i32) -> Result<(), String> {
+    let result = unsafe { SetAllKeyMode(key_mode) };
     match result {
         0 => Ok(()),
         _ => Err(get_last_error_message()),
@@ -230,9 +228,9 @@ pub fn set_key_mode(key_mode: KeyMode) -> Result<(), String> {
 ///
 /// Example:
 /// ```rust
-/// saal::set_key_mode(saal::enums::KeyMode::NoDuplicates).unwrap();
+/// saal::set_key_mode(saal::ALL_KEYMODE_NODUP).unwrap();
 /// saal::reset_key_mode();
-/// println!("{}", saal::get_key_mode().unwrap() as i32);
+/// println!("{}", saal::get_key_mode().unwrap());
 /// ```
 ///
 /// Output:
@@ -295,16 +293,16 @@ pub fn load_from_file(file_path: &str) -> Result<(), String> {
 ///
 /// Example:
 /// ```rust
-/// saal::set_elset_key_mode(saal::enums::ElsetKeyMode::DirectMemoryAccess).unwrap();
-/// println!("{}", saal::get_elset_key_mode().unwrap() as i32);
+/// saal::set_elset_key_mode(saal::ELSET_KEYMODE_DMA).unwrap();
+/// println!("{}", saal::get_elset_key_mode().unwrap());
 /// ```
 ///
 /// Output:
 /// ```bash
 /// 1
 /// ```
-pub fn set_elset_key_mode(elset_key_mode: ElsetKeyMode) -> Result<(), String> {
-    let result = unsafe { SetElsetKeyMode(elset_key_mode as i32) };
+pub fn set_elset_key_mode(elset_key_mode: i32) -> Result<(), String> {
+    let result = unsafe { SetElsetKeyMode(elset_key_mode) };
     match result {
         0 => Ok(()),
         _ => Err(get_last_error_message()),
@@ -315,39 +313,39 @@ pub fn set_elset_key_mode(elset_key_mode: ElsetKeyMode) -> Result<(), String> {
 ///
 /// Example:
 /// ```rust
-/// saal::set_elset_key_mode(saal::enums::ElsetKeyMode::NoDuplicates).unwrap();
-/// println!("{}", saal::get_elset_key_mode().unwrap() as i32);
+/// saal::set_elset_key_mode(saal::ELSET_KEYMODE_NODUP).unwrap();
+/// println!("{}", saal::get_elset_key_mode().unwrap());
 /// ```
 ///
 /// Output:
 /// ```bash
 /// 0
 /// ```
-pub fn get_elset_key_mode() -> Result<ElsetKeyMode, String> {
-    let elset_key_mode = unsafe { GetElsetKeyMode() } as isize;
+pub fn get_elset_key_mode() -> Result<i32, String> {
+    let elset_key_mode = unsafe { GetElsetKeyMode() };
     match elset_key_mode {
-        ELSET_KEYMODE_DMA => Ok(ElsetKeyMode::DirectMemoryAccess),
-        ELSET_KEYMODE_NODUP => Ok(ElsetKeyMode::NoDuplicates),
+        ELSET_KEYMODE_DMA => Ok(elset_key_mode),
+        ELSET_KEYMODE_NODUP => Ok(elset_key_mode),
         _ => Err(get_last_error_message()),
     }
 }
 
 /// Set the behavior of returned keys when a duplicate is loaded in NoDuplicates mode.
 ///
-/// Check DuplicateKeyMode for return options.
+/// Check `DUPKEY_*` constants for return options.
 ///
 /// Example:
 /// ```rust
-/// saal::set_duplicate_key_mode(saal::enums::DuplicateKeyMode::ReturnKey).unwrap();
-/// println!("{:?}", saal::get_duplicate_key_mode().unwrap());
+/// saal::set_duplicate_key_mode(saal::DUPKEY_ACTUAL).unwrap();
+/// println!("{}", saal::get_duplicate_key_mode().unwrap());
 /// ```
 ///
 /// Output:
 /// ```bash
-/// ReturnKey
+/// 1
 /// ```
-pub fn set_duplicate_key_mode(dup_key_mode: DuplicateKeyMode) -> Result<(), String> {
-    let result = unsafe { SetDupKeyMode(dup_key_mode as i32) };
+pub fn set_duplicate_key_mode(dup_key_mode: i32) -> Result<(), String> {
+    let result = unsafe { SetDupKeyMode(dup_key_mode) };
     match result {
         0 => Ok(()),
         _ => Err(get_last_error_message()),
@@ -358,26 +356,26 @@ pub fn set_duplicate_key_mode(dup_key_mode: DuplicateKeyMode) -> Result<(), Stri
 ///
 /// Example:
 /// ```rust
-/// saal::set_duplicate_key_mode(saal::enums::DuplicateKeyMode::ReturnZero).unwrap();
-/// println!("{:?}", saal::get_duplicate_key_mode().unwrap());
+/// saal::set_duplicate_key_mode(saal::DUPKEY_ZERO).unwrap();
+/// println!("{}", saal::get_duplicate_key_mode().unwrap());
 /// ```
 ///
 /// Output:
 /// ```bash
-/// ReturnZero
+/// 0
 /// ```
-pub fn get_duplicate_key_mode() -> Result<DuplicateKeyMode, String> {
-    let dup_key_mode = unsafe { GetDupKeyMode() } as isize;
+pub fn get_duplicate_key_mode() -> Result<i32, String> {
+    let dup_key_mode = unsafe { GetDupKeyMode() };
     match dup_key_mode {
-        DUPKEY_ZERO => Ok(DuplicateKeyMode::ReturnZero),
-        DUPKEY_ACTUAL => Ok(DuplicateKeyMode::ReturnKey),
+        DUPKEY_ZERO => Ok(dup_key_mode),
+        DUPKEY_ACTUAL => Ok(dup_key_mode),
         _ => Err(get_last_error_message()),
     }
 }
 
 #[ctor]
 fn initialize() {
-    set_key_mode(KeyMode::DirectMemoryAccess);
+    set_key_mode(ALL_KEYMODE_DMA);
     if let Some(path) = get_time_constants_path() {
         let _ = time::load_constants(path.to_str().unwrap());
     }
@@ -412,10 +410,10 @@ fn get_asset_directory() -> Option<PathBuf> {
     if exe_dir.join("assets").exists() {
         return Some(exe_dir.join("assets"));
     }
-    if let Some(path) = cwd_assets {
-        if path.exists() {
-            return Some(path);
-        }
+    if let Some(path) = cwd_assets
+        && path.exists()
+    {
+        return Some(path);
     }
     if let Some(path) = build_asset_directory() {
         return Some(path);
@@ -467,17 +465,17 @@ mod tests {
     #[test]
     fn test_set_duplicate_key_mode_return_key() {
         let _lock = TEST_LOCK.lock().unwrap();
-        set_duplicate_key_mode(DuplicateKeyMode::ReturnKey).unwrap();
+        set_duplicate_key_mode(DUPKEY_ACTUAL).unwrap();
         let mode = get_duplicate_key_mode().unwrap();
-        assert_eq!(mode, DuplicateKeyMode::ReturnKey);
+        assert_eq!(mode, DUPKEY_ACTUAL);
     }
 
     #[test]
     fn test_get_duplicate_key_mode_return_zero() {
         let _lock = TEST_LOCK.lock().unwrap();
-        set_duplicate_key_mode(DuplicateKeyMode::ReturnZero).unwrap();
+        set_duplicate_key_mode(DUPKEY_ZERO).unwrap();
         let mode = get_duplicate_key_mode().unwrap();
-        assert_eq!(mode, DuplicateKeyMode::ReturnZero);
+        assert_eq!(mode, DUPKEY_ZERO);
     }
 
     #[test]
@@ -492,7 +490,7 @@ mod tests {
 
 #[cfg(feature = "python")]
 #[pymodule]
-fn _saal(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _pysaal(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     bindings::register_bindings(parent_module)?;
     Ok(())
 }

@@ -1,8 +1,6 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use super::enums::{PyAssociationStatus, PyB3Type, PyClassification, PyPositionInTrack};
-use crate::enums;
 use crate::obs::{self, ParsedB3};
 use crate::DLL_VERSION;
 
@@ -59,13 +57,13 @@ impl PyParsedB3 {
     }
 
     #[getter(classification)]
-    fn get_classification(&self) -> PyResult<PyClassification> {
-        Ok(self.inner.classification.into())
+    fn get_classification(&self) -> PyResult<String> {
+        Ok(self.inner.classification.clone())
     }
 
     #[setter(classification)]
-    fn set_classification(&mut self, value: PyClassification) -> PyResult<()> {
-        self.inner.classification = value.into();
+    fn set_classification(&mut self, value: String) -> PyResult<()> {
+        self.inner.classification = value;
         Ok(())
     }
 
@@ -169,13 +167,13 @@ impl PyParsedB3 {
     }
 
     #[getter(year_of_equinox)]
-    fn get_year_of_equinox(&self) -> PyResult<Option<f64>> {
-        Ok(self.inner.year_of_equinox.map(f64::from))
+    fn get_year_of_equinox(&self) -> PyResult<Option<i32>> {
+        Ok(self.inner.year_of_equinox)
     }
 
     #[setter(year_of_equinox)]
-    fn set_year_of_equinox(&mut self, value: Option<f64>) -> PyResult<()> {
-        self.inner.year_of_equinox = value.map(enums::MeanEquinox::from);
+    fn set_year_of_equinox(&mut self, value: Option<i32>) -> PyResult<()> {
+        self.inner.year_of_equinox = value;
         Ok(())
     }
 
@@ -213,35 +211,35 @@ impl PyParsedB3 {
     }
 
     #[getter(observation_type)]
-    fn get_observation_type(&self) -> PyResult<PyB3Type> {
-        Ok(self.inner.observation_type.into())
+    fn get_observation_type(&self) -> PyResult<i32> {
+        Ok(self.inner.observation_type)
     }
 
     #[setter(observation_type)]
-    fn set_observation_type(&mut self, value: PyB3Type) -> PyResult<()> {
-        self.inner.observation_type = value.into();
+    fn set_observation_type(&mut self, value: i32) -> PyResult<()> {
+        self.inner.observation_type = value;
         Ok(())
     }
 
     #[getter(track_position)]
-    fn get_track_position(&self) -> PyResult<PyPositionInTrack> {
-        Ok(self.inner.track_position.into())
+    fn get_track_position(&self) -> PyResult<i32> {
+        Ok(self.inner.track_position)
     }
 
     #[setter(track_position)]
-    fn set_track_position(&mut self, value: PyPositionInTrack) -> PyResult<()> {
-        self.inner.track_position = value.into();
+    fn set_track_position(&mut self, value: i32) -> PyResult<()> {
+        self.inner.track_position = value;
         Ok(())
     }
 
     #[getter(association_status)]
-    fn get_association_status(&self) -> PyResult<PyAssociationStatus> {
-        Ok(self.inner.association_status.into())
+    fn get_association_status(&self) -> PyResult<i32> {
+        Ok(self.inner.association_status)
     }
 
     #[setter(association_status)]
-    fn set_association_status(&mut self, value: PyAssociationStatus) -> PyResult<()> {
-        self.inner.association_status = value.into();
+    fn set_association_status(&mut self, value: i32) -> PyResult<()> {
+        self.inner.association_status = value;
         Ok(())
     }
 
@@ -286,5 +284,18 @@ impl PyParsedB3 {
 pub fn register_obs_interface(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     parent_module.add_class::<ObsInterface>()?;
     parent_module.add_class::<PyParsedB3>()?;
+    let class = parent_module.getattr("ObsInterface")?;
+    class.setattr("EQUINOX_OBSTIME", obs::EQUINOX_OBSTIME)?;
+    class.setattr("EQUINOX_OBSYEAR", obs::EQUINOX_OBSYEAR)?;
+    class.setattr("EQUINOX_J2K", obs::EQUINOX_J2K)?;
+    class.setattr("EQUINOX_B1950", obs::EQUINOX_B1950)?;
+    class.setattr("OBSFORM_B3", obs::OBSFORM_B3)?;
+    class.setattr("OBSFORM_TTY", obs::OBSFORM_TTY)?;
+    class.setattr("OBSFORM_CSV", obs::OBSFORM_CSV)?;
+    class.setattr("OBSFORM_RF", obs::OBSFORM_RF)?;
+    class.setattr("BADOBSKEY", obs::BADOBSKEY)?;
+    class.setattr("DUPOBSKEY", obs::DUPOBSKEY)?;
+    class.setattr("OBS_KEYMODE_NODUP", obs::OBS_KEYMODE_NODUP)?;
+    class.setattr("OBS_KEYMODE_DMA", obs::OBS_KEYMODE_DMA)?;
     Ok(())
 }

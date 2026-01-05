@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import KeyOrder, TLEInterface
+from saal import TLEInterface
 
 SGP_LINE_1 = "1 11111U 98067A   25363.54791667 +.00012345  10000-1  20000-1 0 0900"
 SGP_LINE_2 = "2 11111  30.0000  40.0000 0005000  60.0000  70.0000  1.2345678012345"
@@ -104,7 +104,7 @@ def test_bench_tle_get_count(benchmark: BenchmarkFixture, tle_iface: TLEInterfac
 def test_bench_tle_get_keys(benchmark: BenchmarkFixture, tle_iface: TLEInterface) -> None:
     def run() -> list[int]:
         key = tle_iface.load_lines(SGP_LINE_1, SGP_LINE_2)
-        keys = tle_iface.get_keys(KeyOrder.Ascending)
+        keys = tle_iface.get_keys(0)
         tle_iface.remove(key)
         return keys
 

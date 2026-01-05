@@ -1,4 +1,4 @@
-name: CI
+name: Test
 
 on:
   push:
@@ -34,6 +34,10 @@ jobs:
             runner: windows-latest
             target: x86_64-pc-windows-msvc
             mode: native
+          - name: windows-aarch64
+            runner: windows-11-arm64
+            target: aarch64-pc-windows-msvc
+            mode: native
 
     steps:
       - name: Checkout
@@ -44,6 +48,20 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Build and test
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: python -m pip install --upgrade pip maturin pytest
+
+      - name: Test Rust
         if: matrix.mode == 'native'
         run: cargo test --target ${{ matrix.target }} --lib --tests --bins
+
+      - name: Build and test Python
+        if: matrix.mode == 'native'
+        run: |
+          maturin develop --release --target ${{ matrix.target }}
+          pytest

@@ -1,10 +1,10 @@
 /target
 truth/
-python/saal/assets/
-python/saal/*.dylib
-python/saal/*.so
-python/saal/*.pyi
-python/saal/py.typed
+python/pysaal/assets/
+python/pysaal/*.dylib
+python/pysaal/*.so
+python/pysaal/*.pyi
+python/pysaal/py.typed
 fort.*
 venv
 .mypy_cache/

@@ -1,7 +1,7 @@
 // This wrapper file was generated automatically by the GenDllWrappers program.
 #![allow(non_snake_case)]
 #![allow(dead_code)]
-use crate::{GetSetString, enums, get_last_error_message};
+use crate::{GetSetString, get_last_error_message};
 use std::os::raw::c_char;
 
 unsafe extern "C" {
@@ -333,13 +333,13 @@ pub fn get_dll_info() -> String {
 
 // Equinox indicator
 // time of observation
-pub const EQUINOX_OBSTIME: isize = 0;
+pub const EQUINOX_OBSTIME: i32 = 0;
 // time @ 0 Jan Year of Date
-pub const EQUINOX_OBSYEAR: isize = 1;
+pub const EQUINOX_OBSYEAR: i32 = 1;
 // J2000
-pub const EQUINOX_J2K: isize = 2;
+pub const EQUINOX_J2K: i32 = 2;
 // B1950
-pub const EQUINOX_B1950: isize = 3;
+pub const EQUINOX_B1950: i32 = 3;
 
 // Indexes for sorting ob
 // Sort options:
@@ -946,7 +946,7 @@ pub static XA_SELOB_SIZE: i32 = 128;
 // ========================= End of auto generated code ==========================
 
 pub struct ParsedB3 {
-    pub classification: enums::Classification,
+    pub classification: String,
     pub norad_id: i32,
     pub sensor_number: i32,
     pub epoch: f64,
@@ -956,13 +956,13 @@ pub struct ParsedB3 {
     pub right_ascension: Option<f64>,
     pub range: Option<f64>,
     pub range_rate: Option<f64>,
-    pub year_of_equinox: Option<enums::MeanEquinox>,
+    pub year_of_equinox: Option<i32>,
     pub elevation_rate: Option<f64>,
     pub azimuth_rate: Option<f64>,
     pub range_acceleration: Option<f64>,
-    pub observation_type: enums::B3Type,
-    pub track_position: enums::PositionInTrack,
-    pub association_status: enums::AssociationStatus,
+    pub observation_type: i32,
+    pub track_position: i32,
+    pub association_status: i32,
     pub site_tag: i32,
     pub spadoc_tag: i32,
     pub position: Option<[f64; 3]>,
@@ -971,7 +971,7 @@ pub struct ParsedB3 {
 impl Default for ParsedB3 {
     fn default() -> Self {
         ParsedB3 {
-            classification: enums::Classification::Unclassified,
+            classification: String::from("U"),
             norad_id: 99999,
             sensor_number: 999,
             epoch: 0.0,
@@ -984,10 +984,10 @@ impl Default for ParsedB3 {
             elevation_rate: None,
             azimuth_rate: None,
             range_acceleration: None,
-            observation_type: enums::B3Type::Nine,
-            track_position: enums::PositionInTrack::Beginning,
-            year_of_equinox: Some(enums::MeanEquinox::Year),
-            association_status: enums::AssociationStatus::None,
+            observation_type: 9,
+            track_position: 3,
+            year_of_equinox: Some(EQUINOX_OBSTIME),
+            association_status: 4,
             site_tag: 0,
             spadoc_tag: 0,
             position: None,
@@ -998,12 +998,12 @@ impl Default for ParsedB3 {
 impl ParsedB3 {
     fn _validate_fields(&self) -> Result<(), String> {
         match self.observation_type {
-            enums::B3Type::Zero => {
+            0 => {
                 if self.range_rate.is_none() {
                     return Err(format!("Range rate is required for {:?}", self.observation_type));
                 }
             }
-            enums::B3Type::One => {
+            1 => {
                 if self.elevation.is_none() {
                     return Err(format!("Elevation is required for {:?}", self.observation_type));
                 }
@@ -1011,7 +1011,7 @@ impl ParsedB3 {
                     return Err(format!("Azimuth is required for {:?}", self.observation_type));
                 }
             }
-            enums::B3Type::Two => {
+            2 => {
                 // elevation, azimuth, range
                 if self.elevation.is_none() {
                     return Err(format!("Elevation is required for {:?}", self.observation_type));
@@ -1023,7 +1023,7 @@ impl ParsedB3 {
                     return Err(format!("Range is required for {:?}", self.observation_type));
                 }
             }
-            enums::B3Type::Three => {
+            3 => {
                 // elevation, azimuth, range, range-rate
                 if self.elevation.is_none() {
                     return Err(format!("Elevation is required for {:?}", self.observation_type));
@@ -1038,7 +1038,7 @@ impl ParsedB3 {
                     return Err(format!("Range rate is required for {:?}", self.observation_type));
                 }
             }
-            enums::B3Type::Four => {
+            4 => {
                 // elevation, azimuth, range, range-rate, elevation-rate, azimuth-rate, range-
                 // acceleration
                 if self.elevation.is_none() {
@@ -1066,7 +1066,7 @@ impl ParsedB3 {
                     ));
                 }
             }
-            enums::B3Type::Five => {
+            5 => {
                 // declination, right-ascension
                 if self.declination.is_none() {
                     return Err(format!("Declination is required for {:?}", self.observation_type));
@@ -1078,13 +1078,13 @@ impl ParsedB3 {
                     return Err(format!("Year of equinox is required for {:?}", self.observation_type));
                 }
             }
-            enums::B3Type::Six => {
+            6 => {
                 // range only
                 if self.range.is_none() {
                     return Err(format!("Range is required for {:?}", self.observation_type));
                 }
             }
-            enums::B3Type::Eight => {
+            8 => {
                 // elevation, azimuth, (and sensor location) from mobile sensor
                 if self.elevation.is_none() {
                     return Err(format!("Elevation is required for {:?}", self.observation_type));
@@ -1099,7 +1099,7 @@ impl ParsedB3 {
                     ));
                 }
             }
-            enums::B3Type::Nine => {
+            9 => {
                 // declination, right-ascension, (and sensor location) from mobile sensor
                 if self.declination.is_none() {
                     return Err(format!("Declination is required for {:?}", self.observation_type));
@@ -1113,6 +1113,9 @@ impl ParsedB3 {
                         self.observation_type
                     ));
                 }
+            }
+            _ => {
+                return Err(format!("Unsupported observation type: {:?}", self.observation_type));
             }
         }
         Ok(())
@@ -1160,12 +1163,13 @@ impl ParsedB3 {
             )
         };
 
-        let b3_type: enums::B3Type = obs_type.into();
+        let obs_type_char: i8 = obs_type.value().chars().next().unwrap_or('X') as i8;
+        let b3_type = unsafe { ObsTypeCToI(obs_type_char) };
         let mut azimuth: Option<f64> = None;
         let mut right_ascension: Option<f64> = None;
         let mut elevation: Option<f64> = None;
         let mut declination: Option<f64> = None;
-        let mut year_of_equinox: Option<enums::MeanEquinox> = None;
+        let mut year_of_equinox: Option<i32> = None;
         let mut range_rate: Option<f64> = None;
         let mut range: Option<f64> = None;
         let mut elevation_rate: Option<f64> = None;
@@ -1173,25 +1177,25 @@ impl ParsedB3 {
         let mut range_acceleration: Option<f64> = None;
         let mut position: Option<[f64; 3]> = None;
         match b3_type {
-            enums::B3Type::Zero => {
+            0 => {
                 range_rate = Some(range_rate_or_equinox);
             }
-            enums::B3Type::One => {
+            1 => {
                 elevation = Some(el_or_dec);
                 azimuth = Some(az_or_ra);
             }
-            enums::B3Type::Two => {
+            2 => {
                 elevation = Some(el_or_dec);
                 azimuth = Some(az_or_ra);
                 range = Some(slant_range);
             }
-            enums::B3Type::Three => {
+            3 => {
                 elevation = Some(el_or_dec);
                 azimuth = Some(az_or_ra);
                 range = Some(slant_range);
                 range_rate = Some(range_rate_or_equinox);
             }
-            enums::B3Type::Four => {
+            4 => {
                 elevation = Some(el_or_dec);
                 azimuth = Some(az_or_ra);
                 range = Some(slant_range);
@@ -1200,34 +1204,35 @@ impl ParsedB3 {
                 azimuth_rate = Some(az_rate);
                 range_acceleration = Some(range_accel);
             }
-            enums::B3Type::Five => {
+            5 => {
                 range = Some(slant_range);
                 declination = Some(el_or_dec);
                 right_ascension = Some(az_or_ra);
-                year_of_equinox = Some(range_rate_or_equinox.into());
+                year_of_equinox = Some(range_rate_or_equinox as i32);
                 range_rate = None;
             }
-            enums::B3Type::Six => {
+            6 => {
                 range = Some(slant_range);
             }
-            enums::B3Type::Eight => {
+            8 => {
                 elevation = Some(el_or_dec);
                 azimuth = Some(az_or_ra);
                 range = Some(slant_range);
                 position = Some(pos);
             }
-            enums::B3Type::Nine => {
+            9 => {
                 declination = Some(el_or_dec);
                 right_ascension = Some(az_or_ra);
                 range = Some(slant_range);
-                year_of_equinox = Some(range_rate_or_equinox.into());
+                year_of_equinox = Some(range_rate_or_equinox as i32);
                 position = Some(pos);
             }
+            _ => {}
         }
 
         match result {
             0 => Ok(ParsedB3 {
-                classification: sec_char.into(),
+                classification: sec_char.value().trim().to_string(),
                 norad_id: sat_num,
                 sensor_number: sen_num,
                 epoch: obs_time_ds50utc,
@@ -1242,8 +1247,8 @@ impl ParsedB3 {
                 range_acceleration,
                 year_of_equinox,
                 observation_type: b3_type,
-                track_position: track_ind.into(),
-                association_status: astat.into(),
+                track_position: track_ind,
+                association_status: astat,
                 site_tag,
                 spadoc_tag,
                 position,
@@ -1254,30 +1259,22 @@ impl ParsedB3 {
 
     fn get_az_or_ra(&self) -> f64 {
         match self.observation_type {
-            enums::B3Type::One
-            | enums::B3Type::Two
-            | enums::B3Type::Three
-            | enums::B3Type::Four
-            | enums::B3Type::Eight => self.azimuth.unwrap(),
-            enums::B3Type::Five | enums::B3Type::Nine => self.right_ascension.unwrap(),
+            1 | 2 | 3 | 4 | 8 => self.azimuth.unwrap(),
+            5 | 9 => self.right_ascension.unwrap(),
             _ => 0.0,
         }
     }
 
     fn get_el_or_dec(&self) -> f64 {
         match self.observation_type {
-            enums::B3Type::One
-            | enums::B3Type::Two
-            | enums::B3Type::Three
-            | enums::B3Type::Four
-            | enums::B3Type::Eight => self.elevation.unwrap(),
-            enums::B3Type::Five | enums::B3Type::Nine => self.declination.unwrap(),
+            1 | 2 | 3 | 4 | 8 => self.elevation.unwrap(),
+            5 | 9 => self.declination.unwrap(),
             _ => 0.0,
         }
     }
 
     fn get_range_rate_or_equinox(&self) -> f64 {
-        if self.observation_type == enums::B3Type::Five || self.observation_type == enums::B3Type::Nine {
+        if self.observation_type == 5 || self.observation_type == 9 {
             self.year_of_equinox.unwrap().into()
         } else {
             self.range_rate.unwrap_or(0.0)
@@ -1287,10 +1284,12 @@ impl ParsedB3 {
     pub fn get_line(&self) -> Result<String, String> {
         self._validate_fields()?;
         let mut output_str = GetSetString::new();
+        let ob_type = unsafe { ObsTypeIToC(self.observation_type) } as i8;
+        let sec_char = self.classification.chars().next().unwrap_or('U') as i8;
 
         unsafe {
             ObsFieldsToB3Card(
-                self.classification.into(),
+                sec_char,
                 self.norad_id,
                 self.sensor_number,
                 self.epoch,
@@ -1301,9 +1300,9 @@ impl ParsedB3 {
                 self.elevation_rate.unwrap_or(0.0),
                 self.azimuth_rate.unwrap_or(0.0),
                 self.range_acceleration.unwrap_or(0.0),
-                self.observation_type.into(),
-                self.track_position.into(),
-                self.association_status.into(),
+                ob_type,
+                self.track_position,
+                self.association_status,
                 self.site_tag,
                 self.spadoc_tag,
                 &self.position.unwrap_or([0.0, 0.0, 0.0]),
@@ -1323,7 +1322,7 @@ mod tests {
 
     fn base_parsed_b3(equinox: f64) -> ParsedB3 {
         ParsedB3 {
-            classification: enums::Classification::Unclassified,
+            classification: String::from("U"),
             norad_id: 11111,
             sensor_number: 500,
             epoch: 25934.75,
@@ -1335,11 +1334,11 @@ mod tests {
             elevation: None,
             elevation_rate: None,
             azimuth_rate: None,
-            year_of_equinox: Some(equinox.into()),
+            year_of_equinox: Some(equinox as i32),
             range_acceleration: None,
-            observation_type: enums::B3Type::Nine,
-            track_position: enums::PositionInTrack::End,
-            association_status: enums::AssociationStatus::High,
+            observation_type: 9,
+            track_position: 5,
+            association_status: 1,
             site_tag: 11111,
             spadoc_tag: 11111,
             position: Some([0.0, 0.0, 0.0]),
@@ -1386,12 +1385,12 @@ mod tests {
         let right_ascen = (22.0 / 24.0 + 20.0 / (60.0 * 24.0) + 39.8 / (60.0 * 60.0 * 24.0)) * 360.0;
         let obs_time = crate::time::year_doy_to_ds50(2013, days);
 
-        assert_eq!(parsed.classification, enums::Classification::Unclassified);
+        assert_eq!(parsed.classification, String::from("U"));
         assert_eq!(parsed.norad_id, 11);
         assert_eq!(parsed.sensor_number, 510);
-        assert_eq!(parsed.observation_type, enums::B3Type::Nine);
-        assert_eq!(parsed.track_position, enums::PositionInTrack::Middle);
-        assert_eq!(parsed.association_status, enums::AssociationStatus::High);
+        assert_eq!(parsed.observation_type, 9);
+        assert_eq!(parsed.track_position, 4);
+        assert_eq!(parsed.association_status, 1);
         assert_eq!(parsed.site_tag, 11);
         assert_eq!(parsed.spadoc_tag, 11);
         assert_abs_diff_eq!(parsed.epoch, obs_time, epsilon = 1.0e-7);

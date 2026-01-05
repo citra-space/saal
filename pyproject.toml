@@ -1,5 +1,5 @@
 [project]
-name = "saal"
+name = "pysaal"
 version = "0.1.0"
 dependencies = []
 description = "A typed Python wrapper for the Standardized Astrodynamics Algorithms Library."
@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 [project.optional-dependencies]
 dev = [
   "maturin",
-  "saal[test]",
+  "pysaal[test]",
   "mkdocstrings[python]",
   "mkdocs-material",
   "markdown-include",
@@ -22,8 +22,8 @@ test = ["pytest", "pytest-benchmark"]
 
 [tool.maturin]
 python-source = "python"
-module-name = "saal._saal"
-include = ["saal/*", "saal/assets/*"]
+module-name = "pysaal._pysaal"
+include = ["pysaal/*", "pysaal/assets/*"]
 generate-stub = false
 bindings = "pyo3"
 features = ["python"]

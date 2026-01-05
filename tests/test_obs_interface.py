@@ -3,16 +3,7 @@ from typing import Generator
 
 import pytest
 
-from saal import (
-    AssociationStatus,
-    B3Type,
-    Classification,
-    MainInterface,
-    ObsInterface,
-    ParsedB3,
-    PositionInTrack,
-    TimeInterface,
-)
+from pysaal import MainInterface, ObsInterface, ParsedB3, TimeInterface
 
 LOCK = threading.RLock()
 
@@ -31,9 +22,9 @@ def time_interface() -> Generator[TimeInterface, None, None]:
         yield interface
 
 
-def base_parsed_b3(equinox: float) -> ParsedB3:
+def base_parsed_b3(equinox: int) -> ParsedB3:
     obs = ParsedB3()
-    obs.classification = Classification.Unclassified
+    obs.classification = "U"
     obs.norad_id = 11111
     obs.sensor_number = 500
     obs.epoch = 25934.75
@@ -47,9 +38,9 @@ def base_parsed_b3(equinox: float) -> ParsedB3:
     obs.azimuth_rate = None
     obs.year_of_equinox = equinox
     obs.range_acceleration = None
-    obs.observation_type = B3Type.Nine
-    obs.track_position = PositionInTrack.End
-    obs.association_status = AssociationStatus.High
+    obs.observation_type = 9
+    obs.track_position = 5
+    obs.association_status = 1
     obs.site_tag = 11111
     obs.spadoc_tag = 11111
     obs.position = [0.0, 0.0, 0.0]
@@ -63,19 +54,19 @@ def test_get_dll_info(obs: ObsInterface) -> None:
 def test_parsed_b3_get_line_year_of_equinox_indicator(obs: ObsInterface) -> None:
     cases = [
         (
-            0.0,
+            0,
             "U1111150021001180000000K06076 0350444                                     9 5  11111111111",
         ),
         (
-            1.0,
+            1,
             "U1111150021001180000000K06076 0350444                                     915  11111111111",
         ),
         (
-            2.0,
+            2,
             "U1111150021001180000000K06076 0350444                                     925  11111111111",
         ),
         (
-            3.0,
+            3,
             "U1111150021001180000000K06076 0350444                                     935  11111111111",
         ),
     ]
@@ -96,12 +87,12 @@ def test_parsed_b3_from_line_matches_fields(
     right_ascen = (22.0 / 24.0 + 20.0 / (60.0 * 24.0) + 39.8 / (60.0 * 60.0 * 24.0)) * 360.0
     obs_time = time_interface.year_doy_to_ds50(2013, days)
 
-    assert parsed.classification == Classification.Unclassified
+    assert parsed.classification == "U"
     assert parsed.norad_id == 11
     assert parsed.sensor_number == 510
-    assert parsed.observation_type == B3Type.Nine
-    assert parsed.track_position == PositionInTrack.Middle
-    assert parsed.association_status == AssociationStatus.High
+    assert parsed.observation_type == 9
+    assert parsed.track_position == 4
+    assert parsed.association_status == 1
     assert parsed.site_tag == 11
     assert parsed.spadoc_tag == 11
     assert parsed.epoch == pytest.approx(obs_time, rel=0.0, abs=1.0e-7)

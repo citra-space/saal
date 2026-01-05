@@ -1,12 +1,11 @@
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use saal::enums::{AssociationStatus, B3Type, Classification, MeanEquinox, PositionInTrack};
 use saal::obs::ParsedB3;
 
 const B3_CARD: &str = "U0001151013352142520112J85202 2220398         -01207880+03706326+05814970 9 4  10001100011";
 
-fn base_parsed_b3(equinox: MeanEquinox) -> ParsedB3 {
+fn base_parsed_b3(equinox: i32) -> ParsedB3 {
     ParsedB3 {
-        classification: Classification::Unclassified,
+        classification: "U".to_string(),
         norad_id: 11111,
         sensor_number: 500,
         epoch: 25934.75,
@@ -20,9 +19,9 @@ fn base_parsed_b3(equinox: MeanEquinox) -> ParsedB3 {
         azimuth_rate: None,
         year_of_equinox: Some(equinox),
         range_acceleration: None,
-        observation_type: B3Type::Nine,
-        track_position: PositionInTrack::End,
-        association_status: AssociationStatus::High,
+        observation_type: 9,
+        track_position: 3,
+        association_status: 1,
         site_tag: 11111,
         spadoc_tag: 11111,
         position: Some([0.0, 0.0, 0.0]),
@@ -39,7 +38,7 @@ fn bench_obs_wrappers(c: &mut Criterion) {
         b.iter(|| ParsedB3::from_line(black_box(B3_CARD)));
     });
     group.bench_function(BenchmarkId::new("get_line", "b3"), |b| {
-        let parsed = base_parsed_b3(MeanEquinox::Date);
+        let parsed = base_parsed_b3(saal::obs::EQUINOX_OBSYEAR);
         b.iter(|| parsed.get_line());
     });
 

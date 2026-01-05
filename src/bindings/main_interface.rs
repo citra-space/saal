@@ -1,14 +1,9 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use super::enums::{
-    PyDuplicateKeyMode, PyElsetKeyMode, PyKeyMode, py_duplicate_key_mode, py_elset_key_mode, py_key_mode,
-};
 use crate::{
-    ALL_KEYMODE_DMA, ALL_KEYMODE_NODUP, DLL_VERSION, DUPKEY_ACTUAL, DUPKEY_ZERO, ELSET_KEYMODE_DMA,
-    ELSET_KEYMODE_NODUP, get_dll_info, get_duplicate_key_mode, get_elset_key_mode, get_key_mode,
-    get_last_error_message, get_last_info_message, load_from_file, reset_key_mode, set_duplicate_key_mode,
-    set_elset_key_mode, set_key_mode,
+    DLL_VERSION, get_dll_info, get_duplicate_key_mode, get_elset_key_mode, get_key_mode, get_last_error_message,
+    get_last_info_message, load_from_file, reset_key_mode, set_duplicate_key_mode, set_elset_key_mode, set_key_mode,
 };
 
 #[pyclass]
@@ -50,14 +45,13 @@ impl MainInterface {
     }
 
     #[getter]
-    fn key_mode(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let mode = get_key_mode().map_err(PyRuntimeError::new_err)?;
-        py_key_mode(py, mode)
+    fn key_mode(&self) -> PyResult<i32> {
+        get_key_mode().map_err(PyRuntimeError::new_err)
     }
 
     #[setter]
-    fn set_key_mode(&self, mode: PyKeyMode) -> PyResult<()> {
-        set_key_mode(mode.into()).map_err(PyRuntimeError::new_err)
+    fn set_key_mode(&self, mode: i32) -> PyResult<()> {
+        set_key_mode(mode).map_err(PyRuntimeError::new_err)
     }
 
     fn reset_key_mode(&self) {
@@ -65,25 +59,23 @@ impl MainInterface {
     }
 
     #[getter]
-    fn elset_key_mode(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let mode = get_elset_key_mode().map_err(PyRuntimeError::new_err)?;
-        py_elset_key_mode(py, mode)
+    fn elset_key_mode(&self) -> PyResult<i32> {
+        get_elset_key_mode().map_err(PyRuntimeError::new_err)
     }
 
     #[setter]
-    fn set_elset_key_mode(&self, mode: PyElsetKeyMode) -> PyResult<()> {
-        set_elset_key_mode(mode.into()).map_err(PyRuntimeError::new_err)
+    fn set_elset_key_mode(&self, mode: i32) -> PyResult<()> {
+        set_elset_key_mode(mode).map_err(PyRuntimeError::new_err)
     }
 
     #[getter]
-    fn duplicate_key_mode(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let mode = get_duplicate_key_mode().map_err(PyRuntimeError::new_err)?;
-        py_duplicate_key_mode(py, mode)
+    fn duplicate_key_mode(&self) -> PyResult<i32> {
+        get_duplicate_key_mode().map_err(PyRuntimeError::new_err)
     }
 
     #[setter]
-    fn set_duplicate_key_mode(&self, mode: PyDuplicateKeyMode) -> PyResult<()> {
-        set_duplicate_key_mode(mode.into()).map_err(PyRuntimeError::new_err)
+    fn set_duplicate_key_mode(&self, mode: i32) -> PyResult<()> {
+        set_duplicate_key_mode(mode).map_err(PyRuntimeError::new_err)
     }
 
     #[classattr]
@@ -91,5 +83,19 @@ impl MainInterface {
 }
 pub fn register_main_interface(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     parent_module.add_class::<MainInterface>()?;
+    let class = parent_module.getattr("MainInterface")?;
+    class.setattr("ALL_KEYMODE_NODUP", crate::ALL_KEYMODE_NODUP)?;
+    class.setattr("ALL_KEYMODE_DMA", crate::ALL_KEYMODE_DMA)?;
+    class.setattr("ELSET_KEYMODE_NODUP", crate::ELSET_KEYMODE_NODUP)?;
+    class.setattr("ELSET_KEYMODE_DMA", crate::ELSET_KEYMODE_DMA)?;
+    class.setattr("DUPKEY_ZERO", crate::DUPKEY_ZERO)?;
+    class.setattr("DUPKEY_ACTUAL", crate::DUPKEY_ACTUAL)?;
+    class.setattr("IDX_ORDER_ASC", crate::IDX_ORDER_ASC)?;
+    class.setattr("IDX_ORDER_DES", crate::IDX_ORDER_DES)?;
+    class.setattr("IDX_ORDER_READ", crate::IDX_ORDER_READ)?;
+    class.setattr("IDX_ORDER_QUICK", crate::IDX_ORDER_QUICK)?;
+    class.setattr("TIME_IS_MSE", crate::TIME_IS_MSE)?;
+    class.setattr("TIME_IS_TAI", crate::TIME_IS_TAI)?;
+    class.setattr("TIME_IS_UTC", crate::TIME_IS_UTC)?;
     Ok(())
 }

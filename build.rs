@@ -91,8 +91,8 @@ fn main() {
 
     // Copy target-specific libraries into the Python package for wheel bundling.
     if env::var("CARGO_FEATURE_PYTHON").is_ok() {
-        let python_pkg_dir = Path::new("python").join("saal");
-        fs::create_dir_all(&python_pkg_dir).expect("Failed to create python/saal directory");
+        let python_pkg_dir = Path::new("python").join("pysaal");
+        fs::create_dir_all(&python_pkg_dir).expect("Failed to create python/pysaal directory");
         for entry in fs::read_dir(&lib_dir).expect("Failed to read lib directory") {
             let entry = entry.expect("Failed to access entry in lib directory");
             let path = entry.path();
@@ -107,7 +107,7 @@ fn main() {
 
         if assets_dir.exists() {
             let python_assets_dir = python_pkg_dir.join("assets");
-            fs::create_dir_all(&python_assets_dir).expect("Failed to create python/saal/assets directory");
+            fs::create_dir_all(&python_assets_dir).expect("Failed to create python/pysaal/assets directory");
             for entry in fs::read_dir(&assets_dir).expect("Failed to read assets directory") {
                 let entry = entry.expect("Failed to access entry in assets directory");
                 let path = entry.path();
@@ -124,7 +124,7 @@ fn main() {
             }
         }
 
-        let stubs_dir = Path::new("stubs").join("saal");
+        let stubs_dir = Path::new("stubs").join("pysaal");
         if stubs_dir.exists() {
             println!("cargo:rerun-if-changed={}", stubs_dir.display());
             for entry in fs::read_dir(&stubs_dir).expect("Failed to read stubs directory") {
@@ -189,10 +189,10 @@ struct LibArchive {
 }
 
 fn resolve_assets_dir(source_dir: &Path, out_dir: &Path) -> PathBuf {
-    if let Some(path) = asset_directory_override() {
-        if assets_present_in_dir(&path) {
-            return path;
-        }
+    if let Some(path) = asset_directory_override()
+        && assets_present_in_dir(&path)
+    {
+        return path;
     }
 
     if assets_present_in_dir(source_dir) {
@@ -258,16 +258,14 @@ fn ensure_libs_downloaded(lib_dir: &Path, out_dir: &Path, target_os: &str, targe
         return;
     };
 
-    let expected =
-        parse_sha256(&archive.sha256).unwrap_or_else(|e| panic!("Invalid lib archive sha256: {e}"));
+    let expected = parse_sha256(&archive.sha256).unwrap_or_else(|e| panic!("Invalid lib archive sha256: {e}"));
     let url = resolve_url(&archive.url, manifest.release_version.as_deref())
         .unwrap_or_else(|e| panic!("Invalid lib archive url: {e}"));
     let tmp_dir = out_dir.join(".saal_downloads");
     fs::create_dir_all(&tmp_dir).unwrap_or_else(|e| panic!("Failed to create {}: {e}", tmp_dir.display()));
     let archive_path = tmp_dir.join("lib.zip");
 
-    download_asset(&url, &archive_path, &expected)
-        .unwrap_or_else(|e| panic!("Failed to download lib archive: {e}"));
+    download_asset(&url, &archive_path, &expected).unwrap_or_else(|e| panic!("Failed to download lib archive: {e}"));
     extract_lib_zip_into(&archive_path, lib_dir);
     let _ = fs::remove_file(&archive_path);
 }
@@ -282,16 +280,13 @@ fn lib_dir_has_files(dir: &Path) -> bool {
 }
 
 fn download_assets_archive(archive: &Archive, dest_root: &Path, release_version: Option<&str>) {
-    let expected =
-        parse_sha256(&archive.sha256).unwrap_or_else(|e| panic!("Invalid assets archive sha256: {e}"));
-    let url =
-        resolve_url(&archive.url, release_version).unwrap_or_else(|e| panic!("Invalid assets archive url: {e}"));
+    let expected = parse_sha256(&archive.sha256).unwrap_or_else(|e| panic!("Invalid assets archive sha256: {e}"));
+    let url = resolve_url(&archive.url, release_version).unwrap_or_else(|e| panic!("Invalid assets archive url: {e}"));
     let tmp_dir = dest_root.join(".saal_downloads");
     fs::create_dir_all(&tmp_dir).unwrap_or_else(|e| panic!("Failed to create {}: {e}", tmp_dir.display()));
     let archive_path = tmp_dir.join("assets.zip");
 
-    download_asset(&url, &archive_path, &expected)
-        .unwrap_or_else(|e| panic!("Failed to download assets archive: {e}"));
+    download_asset(&url, &archive_path, &expected).unwrap_or_else(|e| panic!("Failed to download assets archive: {e}"));
     extract_zip_into(&archive_path, dest_root);
     let _ = fs::remove_file(&archive_path);
 }
@@ -329,8 +324,7 @@ fn resolve_url(template: &str, release_version: Option<&str>) -> Result<String, 
 
 fn extract_zip_into(zip_path: &Path, dest_root: &Path) {
     let file = File::open(zip_path).unwrap_or_else(|e| panic!("Failed to open {}: {e}", zip_path.display()));
-    let mut archive =
-        ZipArchive::new(file).unwrap_or_else(|e| panic!("Invalid zip {}: {e}", zip_path.display()));
+    let mut archive = ZipArchive::new(file).unwrap_or_else(|e| panic!("Invalid zip {}: {e}", zip_path.display()));
 
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).expect("Failed to read zip entry");
@@ -339,8 +333,7 @@ fn extract_zip_into(zip_path: &Path, dest_root: &Path) {
         };
         let out_path = dest_root.join(entry_path);
         if entry.is_dir() {
-            fs::create_dir_all(&out_path)
-                .unwrap_or_else(|e| panic!("Failed to create {}: {e}", out_path.display()));
+            fs::create_dir_all(&out_path).unwrap_or_else(|e| panic!("Failed to create {}: {e}", out_path.display()));
             continue;
         }
 

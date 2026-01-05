@@ -128,7 +128,7 @@ fn bench_tle_wrappers(c: &mut Criterion) {
                 if key <= 0 {
                     panic!("load_lines failed");
                 }
-                let keys = saal::tle::get_keys(saal::enums::KeyOrder::Ascending);
+                let keys = saal::tle::get_keys(saal::IDX_ORDER_ASC);
                 saal::tle::remove(key);
                 black_box(keys);
             },

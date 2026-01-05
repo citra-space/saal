@@ -2,7 +2,6 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 use crate::GetSetString;
-use crate::enums::{FundamentalCatalog, GeopotentialModel};
 use std::os::raw::c_char;
 
 unsafe extern "C" {
@@ -176,27 +175,27 @@ pub const XF_GEOMOD_JGM2: i32 = 2;
 // Earth constants - GEM5
 pub const XF_GEOMOD_GEM5: i32 = 5;
 // Earth constants - EGM-08
-pub const XF_GEOMOD_EGM08: isize = 8;
+pub const XF_GEOMOD_EGM08: i32 = 8;
 // Earth constants - GEM9
 pub const XF_GEOMOD_GEM9: i32 = 9;
 // Earth constants - STEM68
 pub const XF_GEOMOD_STEM68: i32 = 68;
 // Earth constants - WGS-72
-pub const XF_GEOMOD_WGS72: isize = 72;
+pub const XF_GEOMOD_WGS72: i32 = 72;
 // Earth constants - WGS-84
-pub const XF_GEOMOD_WGS84: isize = 84;
+pub const XF_GEOMOD_WGS84: i32 = 84;
 // Earth constants - EGM-96
-pub const XF_GEOMOD_EGM96: isize = 96;
+pub const XF_GEOMOD_EGM96: i32 = 96;
 // Invalid earth model
-pub static XF_GEOMOD_UNKNOWN: i32 = 100;
+pub const XF_GEOMOD_UNKNOWN: i32 = 100;
 
 //*******************************************************************************
 
 // Indexes represent fundamental catalogue FK
 // Fundamental Catalog - FK5
-pub const XF_FKMOD_4: isize = 4;
+pub const XF_FKMOD_4: i32 = 4;
 // Fundamental Catalog - FK4
-pub const XF_FKMOD_5: isize = 5;
+pub const XF_FKMOD_5: i32 = 5;
 
 // ========================= End of auto generated code ==========================
 
@@ -417,11 +416,11 @@ pub fn load_from_file(file_path: &str) -> Result<(), String> {
 /// ```bash
 /// 5
 /// ```
-pub fn get_fundamental_catalog() -> Result<FundamentalCatalog, String> {
-    let fk_idx = unsafe { EnvGetFkIdx() } as isize;
+pub fn get_fundamental_catalog() -> Result<i32, String> {
+    let fk_idx = unsafe { EnvGetFkIdx() };
     match fk_idx {
-        XF_FKMOD_4 => Ok(FundamentalCatalog::Four),
-        XF_FKMOD_5 => Ok(FundamentalCatalog::Five),
+        XF_FKMOD_4 => Ok(fk_idx),
+        XF_FKMOD_5 => Ok(fk_idx),
         _ => Err(format!("Unknown fundamental catalog index: {}", fk_idx)),
     }
 }
@@ -430,44 +429,31 @@ pub fn get_fundamental_catalog() -> Result<FundamentalCatalog, String> {
 ///
 /// Example:
 /// ```rust
-/// saal::environment::set_fundamental_catalog(saal::enums::FundamentalCatalog::Four);
-/// println!("{}", saal::environment::get_fundamental_catalog().unwrap() as i32);
+/// saal::environment::set_fundamental_catalog(4);
+/// println!("{}", saal::environment::get_fundamental_catalog().unwrap());
 /// ```
 ///
 /// Output:
 /// ```bash
 /// 4
 /// ```
-pub fn set_fundamental_catalog(catalog: FundamentalCatalog) {
-    let fk_idx = match catalog {
-        FundamentalCatalog::Four => XF_FKMOD_4,
-        FundamentalCatalog::Five => XF_FKMOD_5,
-    };
+pub fn set_fundamental_catalog(catalog: i32) {
     unsafe {
-        EnvSetFkIdx(fk_idx as i32);
+        EnvSetFkIdx(catalog);
     }
 }
 
-pub fn set_geopotential_model(geo_model: GeopotentialModel) {
-    let geo_idx = match geo_model {
-        GeopotentialModel::WGS72 => XF_GEOMOD_WGS72,
-        GeopotentialModel::WGS84 => XF_GEOMOD_WGS84,
-        GeopotentialModel::EGM96 => XF_GEOMOD_EGM96,
-        GeopotentialModel::EGM08 => XF_GEOMOD_EGM08,
-    };
+pub fn set_geopotential_model(geo_model: i32) {
     unsafe {
-        EnvSetGeoIdx(geo_idx as i32);
+        EnvSetGeoIdx(geo_model);
     }
 }
 
-pub fn get_geopotential_model() -> Result<GeopotentialModel, String> {
-    let geo_idx = unsafe { EnvGetGeoIdx() } as isize;
+pub fn get_geopotential_model() -> Result<i32, String> {
+    let geo_idx = unsafe { EnvGetGeoIdx() };
     match geo_idx {
-        XF_GEOMOD_WGS72 => Ok(GeopotentialModel::WGS72),
-        XF_GEOMOD_WGS84 => Ok(GeopotentialModel::WGS84),
-        XF_GEOMOD_EGM96 => Ok(GeopotentialModel::EGM96),
-        XF_GEOMOD_EGM08 => Ok(GeopotentialModel::EGM08),
-        _ => Err(format!("Unknown geopotential model index: {}", geo_idx)),
+        XF_GEOMOD_UNKNOWN => Err("Unknown geopotential model".to_string()),
+        _ => Ok(geo_idx),
     }
 }
 
@@ -494,7 +480,7 @@ mod tests {
     fn test_get_fundamental_catalog() {
         let _lock = TEST_LOCK.lock().unwrap();
         let catalog = get_fundamental_catalog().unwrap();
-        assert!(catalog == FundamentalCatalog::Five);
+        assert!(catalog == 5);
     }
 
     #[test]
@@ -556,10 +542,10 @@ mod tests {
     #[test]
     fn test_set_fundamental_catalog_four() {
         let _lock = TEST_LOCK.lock().unwrap();
-        set_fundamental_catalog(FundamentalCatalog::Four);
+        set_fundamental_catalog(4);
         let catalog = get_fundamental_catalog().unwrap();
-        assert_eq!(catalog, FundamentalCatalog::Four);
-        set_fundamental_catalog(FundamentalCatalog::Five);
+        assert_eq!(catalog, 4);
+        set_fundamental_catalog(5);
     }
 
     #[test]

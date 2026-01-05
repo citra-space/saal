@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import SGP4Interface, SGP4OutputEphemerisFrame, TLEInterface
+from saal import SGP4Interface, TLEInterface
 
 SGP4_LINE_1 = "1 22222C 15058A   25363.54791667 +.00012345  10000-1  20000-1 2 0900"
 SGP4_LINE_2 = "2 22222  30.0000  40.0000 0005000  60.0000  70.0000  1.2345678012345"
@@ -98,15 +98,15 @@ def test_bench_sgp4_get_full_state(
 def test_bench_sgp4_get_equinoctial(
     benchmark: BenchmarkFixture, sgp4_iface: SGP4Interface, sgp4_keys: tuple[int, int]
 ) -> None:
-    sgp4_key, _ = sgp4_keys
-    benchmark(sgp4_iface.get_equinoctial, sgp4_key, EPOCH)
+    _, xp_key = sgp4_keys
+    benchmark(sgp4_iface.get_equinoctial, xp_key, EPOCH)
 
 
 def test_bench_sgp4_get_ephemeris(
     benchmark: BenchmarkFixture, sgp4_iface: SGP4Interface, sgp4_keys: tuple[int, int]
 ) -> None:
     sgp4_key, _ = sgp4_keys
-    frame = SGP4OutputEphemerisFrame.TEME
+    frame = 1
     start = EPOCH - 1.0
     stop = EPOCH
     step = 5.0
@@ -121,7 +121,7 @@ def test_bench_sgp4_array_to_ephemeris(
 ) -> None:
     sgp4_key, _ = sgp4_keys
     xa_tle, _ = tle_iface.get_arrays(sgp4_key)
-    frame = SGP4OutputEphemerisFrame.TEME
+    frame = 1
     start = EPOCH - 1.0
     stop = EPOCH
     step = 5.0

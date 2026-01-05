@@ -1,6 +1,6 @@
 import pytest
 
-from saal import AstroInterface, MainInterface
+from pysaal import AstroInterface, MainInterface
 
 
 def test_get_dll_info() -> None:

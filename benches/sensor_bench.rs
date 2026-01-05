@@ -28,7 +28,7 @@ fn bench_sensor_wrappers(c: &mut Criterion) {
             || {
                 saal::sensor::load_card(SENSOR_CARD).expect("load_card failed");
                 saal::sensor::load_card(NOISE_CARD).expect("load_card failed");
-                let keys = saal::sensor::get_keys(saal::enums::KeyOrder::LoadTime);
+                let keys = saal::sensor::get_keys(saal::IDX_ORDER_READ);
                 keys[keys.len() - 1]
             },
             |key| {

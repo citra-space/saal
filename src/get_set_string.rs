@@ -1,4 +1,4 @@
-use crate::{GETSETSTRLEN, enums};
+use crate::GETSETSTRLEN;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
@@ -42,16 +42,5 @@ impl From<&str> for GetSetString {
         let len = std::cmp::min(GETSETSTRLEN, value.len());
         buffer[..len].copy_from_slice(&value[..len]);
         GetSetString { buffer }
-    }
-}
-
-impl From<enums::Classification> for GetSetString {
-    fn from(value: enums::Classification) -> Self {
-        let s = match value {
-            enums::Classification::Unclassified => "U",
-            enums::Classification::Confidential => "C",
-            enums::Classification::Secret => "S",
-        };
-        s.into()
     }
 }

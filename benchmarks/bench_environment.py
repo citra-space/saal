@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import EnvironmentInterface, FundamentalCatalog
+from saal import EnvironmentInterface
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +33,7 @@ def test_bench_environment_set_fundamental_catalog(
     benchmark: BenchmarkFixture, environment_iface: EnvironmentInterface
 ) -> None:
     def run() -> None:
-        environment_iface.fundamental_catalog = FundamentalCatalog.Four
-        environment_iface.fundamental_catalog = FundamentalCatalog.Five
+        environment_iface.fundamental_catalog = 4
+        environment_iface.fundamental_catalog = 5
 
     benchmark(run)

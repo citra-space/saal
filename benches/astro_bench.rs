@@ -1,5 +1,4 @@
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use saal::enums::MeanEquinox;
 use std::path::PathBuf;
 
 fn bench_astro_wrappers(c: &mut Criterion) {
@@ -122,7 +121,7 @@ fn bench_astro_wrappers(c: &mut Criterion) {
     group.bench_function(BenchmarkId::new("topo_equinox_to_date", "eqnx=2000"), |b| {
         b.iter(|| {
             saal::astro::topo_meme_to_teme(
-                black_box(MeanEquinox::J2000),
+                black_box(saal::obs::EQUINOX_J2K),
                 black_box(ds50_utc),
                 black_box(1.0),
                 black_box(0.5),
@@ -132,7 +131,7 @@ fn bench_astro_wrappers(c: &mut Criterion) {
     group.bench_function(BenchmarkId::new("topo_date_to_equinox", "eqnx=2000"), |b| {
         b.iter(|| {
             saal::astro::topo_teme_to_meme(
-                black_box(MeanEquinox::J2000),
+                black_box(saal::obs::EQUINOX_J2K),
                 black_box(ds50_utc),
                 black_box(1.0),
                 black_box(0.5),
@@ -142,7 +141,7 @@ fn bench_astro_wrappers(c: &mut Criterion) {
     group.bench_function(BenchmarkId::new("topo_date_to_epoch", "out=+1d"), |b| {
         b.iter(|| {
             saal::astro::topo_meme_to_teme(
-                black_box(MeanEquinox::J2000),
+                black_box(saal::obs::EQUINOX_J2K),
                 black_box(ds50_utc + 1.0),
                 black_box(1.0),
                 black_box(0.5),
@@ -152,7 +151,7 @@ fn bench_astro_wrappers(c: &mut Criterion) {
     group.bench_function(BenchmarkId::new("topo_epoch_to_date", "out=+1d"), |b| {
         b.iter(|| {
             saal::astro::topo_teme_to_meme(
-                black_box(MeanEquinox::J2000),
+                black_box(saal::obs::EQUINOX_J2K),
                 black_box(ds50_utc + 1.0),
                 black_box(1.0),
                 black_box(0.5),

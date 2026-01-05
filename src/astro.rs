@@ -3,7 +3,7 @@
 #![allow(dead_code)]
 use std::os::raw::c_char;
 
-use super::{GetSetString, enums, environment, get_last_error_message, time};
+use super::{GetSetString, environment, get_last_error_message, time};
 
 unsafe extern "C" {
     //  Retrieves information about the current version of AstroFunc.dll. The information is placed in the string parameter you pass in.
@@ -709,20 +709,20 @@ pub fn lla_to_teme(ds50_utc: f64, pos_lla: &[f64; 3]) -> [f64; 3] {
     pos_teme
 }
 
-pub fn topo_meme_to_teme(yr_of_equinox: enums::MeanEquinox, ds50_utc: f64, ra: f64, dec: f64) -> (f64, f64) {
+pub fn topo_meme_to_teme(yr_of_equinox: i32, ds50_utc: f64, ra: f64, dec: f64) -> (f64, f64) {
     let mut ra_out = 0.0;
     let mut dec_out = 0.0;
     unsafe {
-        RotRADec_EqnxToDate(106, yr_of_equinox.into(), ds50_utc, ra, dec, &mut ra_out, &mut dec_out);
+        RotRADec_EqnxToDate(106, yr_of_equinox, ds50_utc, ra, dec, &mut ra_out, &mut dec_out);
     }
     (ra_out, dec_out)
 }
 
-pub fn topo_teme_to_meme(yr_of_equinox: enums::MeanEquinox, ds50_utc: f64, ra: f64, dec: f64) -> (f64, f64) {
+pub fn topo_teme_to_meme(yr_of_equinox: i32, ds50_utc: f64, ra: f64, dec: f64) -> (f64, f64) {
     let mut ra_out = 0.0;
     let mut dec_out = 0.0;
     unsafe {
-        RotRADec_DateToEqnx(106, yr_of_equinox.into(), ds50_utc, ra, dec, &mut ra_out, &mut dec_out);
+        RotRADec_DateToEqnx(106, yr_of_equinox, ds50_utc, ra, dec, &mut ra_out, &mut dec_out);
     }
     (ra_out, dec_out)
 }
@@ -902,7 +902,7 @@ pub fn get_earth_obstruction_angles(sat_teme_pos: &[f64; 3], sensor_teme_pos: &[
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::enums::GeopotentialModel;
+    use crate::environment::{XF_GEOMOD_WGS72, XF_GEOMOD_WGS84};
     use crate::test_lock::TEST_LOCK;
     use crate::{DLL_VERSION, environment};
     use approx::assert_abs_diff_eq;
@@ -1027,10 +1027,10 @@ mod tests {
     #[test]
     fn test_gst_teme_to_lla() {
         let _lock = TEST_LOCK.lock().unwrap();
-        environment::set_geopotential_model(GeopotentialModel::WGS84);
+        environment::set_geopotential_model(XF_GEOMOD_WGS84);
         let xyz = [6524.834, 6862.875, 6448.296];
         let llh = gst_teme_to_lla(0.0, &xyz);
-        environment::set_geopotential_model(GeopotentialModel::WGS72);
+        environment::set_geopotential_model(XF_GEOMOD_WGS72);
 
         assert_abs_diff_eq!(llh[0], 34.352495, epsilon = 1.0e-5);
         assert_abs_diff_eq!(llh[1], 46.446417, epsilon = 1.0e-5);
@@ -1040,10 +1040,10 @@ mod tests {
     #[test]
     fn test_efg_to_lla() {
         let _lock = TEST_LOCK.lock().unwrap();
-        environment::set_geopotential_model(GeopotentialModel::WGS84);
+        environment::set_geopotential_model(XF_GEOMOD_WGS84);
         let efg = [6524.834, 6862.875, 6448.296];
         let llh = efg_to_lla(&efg).unwrap();
-        environment::set_geopotential_model(GeopotentialModel::WGS72);
+        environment::set_geopotential_model(XF_GEOMOD_WGS72);
 
         assert_abs_diff_eq!(llh[0], 34.352495, epsilon = 1.0e-5);
         assert_abs_diff_eq!(llh[1], 46.446417, epsilon = 1.0e-5);

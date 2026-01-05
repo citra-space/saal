@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from saal import EnvironmentInterface, FundamentalCatalog, MainInterface
+from pysaal import EnvironmentInterface, MainInterface
 
 
 def test_get_dll_info() -> None:
@@ -18,7 +18,7 @@ def test_get_earth_radius() -> None:
 
 def test_get_fundamental_catalog() -> None:
     interface = EnvironmentInterface()
-    assert interface.fundamental_catalog is FundamentalCatalog.Five
+    assert interface.fundamental_catalog == 5
 
 
 def test_get_j2() -> None:
@@ -63,9 +63,9 @@ def test_get_earth_rotation_acceleration() -> None:
 
 def test_set_fundamental_catalog() -> None:
     interface = EnvironmentInterface()
-    interface.fundamental_catalog = FundamentalCatalog.Four
-    assert interface.fundamental_catalog is FundamentalCatalog.Four
-    interface.fundamental_catalog = FundamentalCatalog.Five
+    interface.fundamental_catalog = 4
+    assert interface.fundamental_catalog == 4
+    interface.fundamental_catalog = 5
 
 
 def test_load_from_file_missing() -> None:

@@ -1,7 +1,7 @@
 // This wrapper file was generated automatically by the GenDllWrappers program.
 #![allow(non_snake_case)]
 #![allow(dead_code)]
-use crate::{GetSetString, astro, enums, get_last_error_message};
+use crate::{GetSetString, IDX_ORDER_QUICK, IDX_ORDER_READ, astro, get_last_error_message};
 use std::os::raw::c_char;
 
 unsafe extern "C" {
@@ -858,7 +858,7 @@ pub fn parse_key(sen_key: i64) -> Result<ParsedSensor, String> {
 }
 
 pub fn prune_missing_locations() -> Result<(), String> {
-    let keys = get_keys(enums::KeyOrder::Fastest);
+    let keys = get_keys(IDX_ORDER_QUICK);
 
     for key in keys {
         let lla = get_lla(key).unwrap_or(None);
@@ -871,7 +871,7 @@ pub fn prune_missing_locations() -> Result<(), String> {
 }
 
 pub fn parse_all() -> Result<Vec<ParsedSensor>, String> {
-    let keys = get_keys(enums::KeyOrder::LoadTime);
+    let keys = get_keys(IDX_ORDER_READ);
     let mut sensors = Vec::new();
 
     for key in keys {
@@ -925,11 +925,11 @@ pub fn get_lla(sen_key: i64) -> Result<Option<[f64; 3]>, String> {
     }
 }
 
-pub fn get_keys(order: enums::KeyOrder) -> Vec<i64> {
+pub fn get_keys(order: i32) -> Vec<i64> {
     let count = count_loaded();
     let mut keys = vec![0; count as usize];
     unsafe {
-        SensorGetLoaded(order as i32, keys.as_mut_ptr());
+        SensorGetLoaded(order, keys.as_mut_ptr());
     }
     keys
 }
@@ -1008,7 +1008,7 @@ mod tests {
     fn test_get_arrays() {
         load_card(SENSOR_CARD).unwrap();
         load_card(NOISE_CARD).unwrap();
-        let keys = get_keys(enums::KeyOrder::LoadTime);
+        let keys = get_keys(IDX_ORDER_READ);
         let key = keys[keys.len() - 1];
         let (xa_sen, xs_sen) = get_arrays(key).unwrap();
         clear().unwrap();
@@ -1042,7 +1042,7 @@ mod tests {
     fn test_parse_key() {
         load_card(SENSOR_CARD).unwrap();
         load_card(NOISE_CARD).unwrap();
-        let keys = get_keys(enums::KeyOrder::LoadTime);
+        let keys = get_keys(IDX_ORDER_READ);
         let key = keys[keys.len() - 1];
         let sensor = parse_key(key).unwrap();
         clear().unwrap();

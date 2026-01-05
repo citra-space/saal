@@ -1,7 +1,6 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use super::enums::{PyClassification, PyKeyOrder, PyTleType};
 use crate::DLL_VERSION;
 use crate::tle::{self, ParsedTLE, XA_TLE_SIZE};
 
@@ -76,8 +75,8 @@ impl TLEInterface {
         Ok(tle::get_count())
     }
 
-    fn get_keys(&self, order: PyKeyOrder) -> PyResult<Vec<i64>> {
-        Ok(tle::get_keys(order.into()))
+    fn get_keys(&self, order: i32) -> PyResult<Vec<i64>> {
+        Ok(tle::get_keys(order))
     }
 
     fn get_lines(&self, sat_key: i64) -> PyResult<(String, String)> {
@@ -204,13 +203,13 @@ impl PyParsedTLE {
     }
 
     #[getter(ephemeris_type)]
-    fn get_ephemeris_type(&self) -> PyResult<PyTleType> {
-        Ok(self.inner.get_ephemeris_type().into())
+    fn get_ephemeris_type(&self) -> PyResult<i32> {
+        Ok(self.inner.get_ephemeris_type())
     }
 
     #[setter(ephemeris_type)]
-    fn set_ephemeris_type(&mut self, value: PyTleType) -> PyResult<()> {
-        self.inner.set_ephemeris_type(value.into());
+    fn set_ephemeris_type(&mut self, value: i32) -> PyResult<()> {
+        self.inner.set_ephemeris_type(value);
         Ok(())
     }
 
@@ -248,13 +247,13 @@ impl PyParsedTLE {
     }
 
     #[getter(classification)]
-    fn get_classification(&self) -> PyResult<PyClassification> {
-        Ok(self.inner.classification.into())
+    fn get_classification(&self) -> PyResult<String> {
+        Ok(self.inner.classification.clone())
     }
 
     #[setter(classification)]
-    fn set_classification(&mut self, value: PyClassification) -> PyResult<()> {
-        self.inner.classification = value.into();
+    fn set_classification(&mut self, value: String) -> PyResult<()> {
+        self.inner.classification = value;
         Ok(())
     }
 
@@ -322,5 +321,10 @@ impl PyParsedTLE {
 pub fn register_tle_interface(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     parent_module.add_class::<TLEInterface>()?;
     parent_module.add_class::<PyParsedTLE>()?;
+    let class = parent_module.getattr("TLEInterface")?;
+    class.setattr("TLETYPE_SGP", tle::TLETYPE_SGP)?;
+    class.setattr("TLETYPE_SGP4", tle::TLETYPE_SGP4)?;
+    class.setattr("TLETYPE_XP", tle::TLETYPE_XP)?;
+    class.setattr("TLETYPE_SP", tle::TLETYPE_SP)?;
     Ok(())
 }

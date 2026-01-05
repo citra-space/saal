@@ -1,7 +1,6 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use super::enums::PyKeyOrder;
 use crate::sensor::{self, ParsedSensor, XA_SEN_SIZE};
 use crate::DLL_VERSION;
 
@@ -52,8 +51,8 @@ impl SensorInterface {
         sensor::get_lla(sen_key).map_err(PyRuntimeError::new_err)
     }
 
-    fn get_keys(&self, order: PyKeyOrder) -> PyResult<Vec<i64>> {
-        Ok(sensor::get_keys(order.into()))
+    fn get_keys(&self, order: i32) -> PyResult<Vec<i64>> {
+        Ok(sensor::get_keys(order))
     }
 
     fn load_card(&self, card: String) -> PyResult<()> {
@@ -193,5 +192,14 @@ impl PyParsedSensor {
 pub fn register_sensor_interface(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     parent_module.add_class::<SensorInterface>()?;
     parent_module.add_class::<PyParsedSensor>()?;
+    let class = parent_module.getattr("SensorInterface")?;
+    class.setattr("SEN_KEYMODE_NODUP", sensor::SEN_KEYMODE_NODUP)?;
+    class.setattr("SEN_KEYMODE_DMA", sensor::SEN_KEYMODE_DMA)?;
+    class.setattr("BADSENKEY", sensor::BADSENKEY)?;
+    class.setattr("DUPSENKEY", sensor::DUPSENKEY)?;
+    class.setattr("SENLOC_TYPE_ECR", sensor::SENLOC_TYPE_ECR)?;
+    class.setattr("SENLOC_TYPE_EFG", sensor::SENLOC_TYPE_EFG)?;
+    class.setattr("SENLOC_TYPE_LLH", sensor::SENLOC_TYPE_LLH)?;
+    class.setattr("SENLOC_TYPE_ECI", sensor::SENLOC_TYPE_ECI)?;
     Ok(())
 }

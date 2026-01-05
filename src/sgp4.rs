@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 use crate::{
-    GetSetString, enums, get_last_error_message,
+    GetSetString, get_last_error_message,
     tle::{self, XA_TLE_AGOMGP},
 };
 use std::os::raw::c_char;
@@ -313,9 +313,9 @@ pub const XA_SGP4OUT_SIZE: usize = 64;
 
 // Different options for generating ephemerides from SGP4
 // ECI TEME of DATE     - 0: time in days since 1950 UTC, 1-3: pos (km), 4-6: vel (km/sec)
-pub const SGP4_EPHEM_ECI: isize = 1;
+pub const SGP4_EPHEM_ECI: i32 = 1;
 // MEME of J2K (4 terms)- 0: time in days since 1950 UTC, 1-3: pos (km), 4-6: vel (km/sec)
-pub const SGP4_EPHEM_J2K: isize = 2;
+pub const SGP4_EPHEM_J2K: i32 = 2;
 
 // Different dynamic step size options
 // Use a simple algorithm to determine step size based on satellite's current position
@@ -325,13 +325,7 @@ pub static DYN_SS_BASIC: i32 = -1;
 
 // ========================= End of auto generated code ==========================
 
-pub fn get_ephemeris(
-    sat_key: i64,
-    start: f64,
-    stop: f64,
-    step: f64,
-    frame: enums::SGP4OutputEphemerisFrame,
-) -> Result<Vec<f64>, String> {
+pub fn get_ephemeris(sat_key: i64, start: f64, stop: f64, step: f64, frame: i32) -> Result<Vec<f64>, String> {
     let step_days = step / (24.0 * 60.0);
     let num_steps = (((stop - start) / step_days).ceil()) as i32 + 1;
     let array_size = num_steps * 7;
@@ -343,7 +337,7 @@ pub fn get_ephemeris(
             start,
             stop,
             step,
-            frame as i32,
+            frame,
             array_size,
             ephem_arr.as_mut_ptr(),
             &mut gen_ephem_pts,
@@ -363,7 +357,7 @@ pub fn array_to_ephemeris(
     start: f64,
     stop: f64,
     step: f64,
-    frame: enums::SGP4OutputEphemerisFrame,
+    frame: i32,
 ) -> Result<Vec<f64>, String> {
     let step_days = step / (24.0 * 60.0);
     let num_steps = (((stop - start) / step_days).ceil()) as i32 + 1;
@@ -376,7 +370,7 @@ pub fn array_to_ephemeris(
             start,
             stop,
             step,
-            frame as i32,
+            frame,
             array_size,
             ephem_arr.as_mut_ptr(),
             &mut gen_ephem_pts,
@@ -627,7 +621,7 @@ mod tests {
         let start = EPOCH - 1.0;
         let stop = EPOCH;
         let step = 5.0;
-        let frame = enums::SGP4OutputEphemerisFrame::TEME;
+        let frame = SGP4_EPHEM_ECI;
         load(sgp4_key).unwrap();
         load(xp_key).unwrap();
         let sgp4_ephem_by_key = get_ephemeris(sgp4_key, start, stop, step, frame).unwrap();

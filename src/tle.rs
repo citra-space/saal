@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
-use crate::{GetSetString, enums, get_last_error_message};
+use crate::{GetSetString, get_last_error_message};
 use std::os::raw::c_char;
 use std::result::Result;
 
@@ -466,13 +466,13 @@ unsafe extern "C" {
 
 // TLE types (TLE ephemeris types) - They are different than ELTTYPE
 // TLE SGP elset (Kozai mean motion)
-pub const TLETYPE_SGP: isize = 0;
+pub const TLETYPE_SGP: i32 = 0;
 // TLE SGP4 elset (Brouwer mean motion)
-pub const TLETYPE_SGP4: isize = 2;
+pub const TLETYPE_SGP4: i32 = 2;
 // TLE SGP4-XP elset (Brouwer mean motion)
-pub const TLETYPE_XP: isize = 4;
+pub const TLETYPE_XP: i32 = 4;
 // TLE SP elset (osculating elements)
-pub const TLETYPE_SP: isize = 6;
+pub const TLETYPE_SP: i32 = 6;
 
 // Indexes of TLE data fields
 // Satellite number
@@ -643,11 +643,11 @@ pub struct ParsedTLE {
     mean_motion_1st_derivative: Option<f64>,
     mean_motion_2nd_derivative: Option<f64>,
     b_star: Option<f64>,
-    ephemeris_type: enums::TLEType,
+    ephemeris_type: i32,
     pub element_set_number: i32,
     pub revolution_number: i32,
     pub designator: Option<String>,
-    pub classification: enums::Classification,
+    pub classification: String,
     ballistic_coefficient: Option<f64>,
     srp_coefficient: Option<f64>,
 }
@@ -676,7 +676,7 @@ impl ParsedTLE {
 
     pub fn set_mean_motion_1st_derivative(&mut self, value: Option<f64>) {
         match self.ephemeris_type {
-            enums::TLEType::SGP | enums::TLEType::SGP4 | enums::TLEType::XP => {
+            0 | 2 | 4 => {
                 self.mean_motion_1st_derivative = Some(value.unwrap_or(0.0));
             }
             _ => {
@@ -687,7 +687,7 @@ impl ParsedTLE {
 
     pub fn set_mean_motion_2nd_derivative(&mut self, value: Option<f64>) {
         match self.ephemeris_type {
-            enums::TLEType::SGP | enums::TLEType::SGP4 => {
+            0 | 2 => {
                 self.mean_motion_2nd_derivative = Some(value.unwrap_or(0.0));
             }
             _ => {
@@ -698,7 +698,7 @@ impl ParsedTLE {
 
     pub fn set_b_star(&mut self, value: Option<f64>) {
         match self.ephemeris_type {
-            enums::TLEType::SGP | enums::TLEType::SGP4 => {
+            0 | 2 => {
                 self.b_star = Some(value.unwrap_or(0.0));
             }
             _ => {
@@ -709,7 +709,7 @@ impl ParsedTLE {
 
     pub fn set_ballistic_coefficient(&mut self, value: Option<f64>) {
         match self.ephemeris_type {
-            enums::TLEType::SP | enums::TLEType::XP => {
+            4 | 6 => {
                 self.ballistic_coefficient = Some(value.unwrap_or(0.0));
             }
             _ => {
@@ -720,7 +720,7 @@ impl ParsedTLE {
 
     pub fn set_srp_coefficient(&mut self, value: Option<f64>) {
         match self.ephemeris_type {
-            enums::TLEType::SP | enums::TLEType::XP => {
+            4 | 6 => {
                 self.srp_coefficient = Some(value.unwrap_or(0.0));
             }
             _ => {
@@ -729,12 +729,12 @@ impl ParsedTLE {
         }
     }
 
-    pub fn set_ephemeris_type(&mut self, ephemeris_type: enums::TLEType) {
+    pub fn set_ephemeris_type(&mut self, ephemeris_type: i32) {
         self.ephemeris_type = ephemeris_type;
-        self._validate_fields();
+        self._validate_fields().unwrap();
     }
 
-    pub fn get_ephemeris_type(&self) -> enums::TLEType {
+    pub fn get_ephemeris_type(&self) -> i32 {
         self.ephemeris_type
     }
 
@@ -758,9 +758,9 @@ impl ParsedTLE {
         self.srp_coefficient
     }
 
-    fn _validate_fields(&mut self) {
+    fn _validate_fields(&mut self) -> Result<(), String> {
         match self.ephemeris_type {
-            enums::TLEType::SGP | enums::TLEType::SGP4 => {
+            0 | 2 => {
                 self.ballistic_coefficient = None;
                 self.srp_coefficient = None;
                 if self.mean_motion_1st_derivative.is_none() {
@@ -773,7 +773,7 @@ impl ParsedTLE {
                     self.b_star = Some(0.0);
                 }
             }
-            enums::TLEType::XP => {
+            4 => {
                 self.mean_motion_2nd_derivative = None;
                 self.b_star = None;
                 if self.mean_motion_1st_derivative.is_none() {
@@ -786,7 +786,7 @@ impl ParsedTLE {
                     self.srp_coefficient = Some(0.0);
                 }
             }
-            enums::TLEType::SP => {
+            6 => {
                 self.mean_motion_1st_derivative = None;
                 self.mean_motion_2nd_derivative = None;
                 self.b_star = None;
@@ -797,7 +797,9 @@ impl ParsedTLE {
                     self.srp_coefficient = Some(0.0);
                 }
             }
+            _ => return Err("Invalid ephemeris type".to_string()),
         }
+        Ok(())
     }
 }
 
@@ -840,11 +842,11 @@ impl Default for ParsedTLE {
             mean_motion_1st_derivative: None,
             mean_motion_2nd_derivative: None,
             b_star: None,
-            ephemeris_type: enums::TLEType::SGP,
+            ephemeris_type: 0,
             element_set_number: 0,
             revolution_number: 0,
             designator: None,
-            classification: enums::Classification::Unclassified,
+            classification: String::from("U"),
             ballistic_coefficient: None,
             srp_coefficient: None,
         }
@@ -862,9 +864,9 @@ fn get_designator_string(xs_tle: &str) -> Option<String> {
     if designator.is_empty() { None } else { Some(designator) }
 }
 
-fn join_xs_tle(classification: &enums::Classification, designator: &Option<String>) -> Result<String, String> {
+fn join_xs_tle(classification: &str, designator: &Option<String>) -> Result<String, String> {
     let mut xs_tle = GetSetString::new();
-    xs_tle.set(XS_TLE_SECCLASS_0_1, classification.into())?;
+    xs_tle.set(XS_TLE_SECCLASS_0_1, classification)?;
     if let Some(desig) = designator {
         xs_tle.set(XS_TLE_SATNAME_1_12, desig)?;
     }
@@ -875,27 +877,27 @@ impl From<([f64; XA_TLE_SIZE], String)> for ParsedTLE {
     fn from(value: ([f64; XA_TLE_SIZE], String)) -> Self {
         let xa_tle = value.0;
         let xs_tle = value.1;
-        let classification = enums::Classification::from(get_classification_str(&xs_tle));
-        let ephemeris_type = enums::TLEType::from(xa_tle[XA_TLE_EPHTYPE]);
+        let classification = get_classification_str(&xs_tle).to_string();
+        let ephemeris_type = xa_tle[XA_TLE_EPHTYPE] as i32;
         let mean_motion_1st_derivative = match ephemeris_type {
-            enums::TLEType::SGP | enums::TLEType::SGP4 | enums::TLEType::XP => Some(xa_tle[XA_TLE_NDOT]),
+            0 | 2 | 4 => Some(xa_tle[XA_TLE_NDOT]),
             _ => None,
         };
         let mean_motion_2nd_derivative = match ephemeris_type {
-            enums::TLEType::SGP | enums::TLEType::SGP4 => Some(xa_tle[XA_TLE_NDOTDOT]),
+            0 | 2 => Some(xa_tle[XA_TLE_NDOTDOT]),
             _ => None,
         };
         let b_star = match ephemeris_type {
-            enums::TLEType::SGP | enums::TLEType::SGP4 => Some(xa_tle[XA_TLE_BSTAR]),
+            0 | 2 => Some(xa_tle[XA_TLE_BSTAR]),
             _ => None,
         };
         let ballistic_coefficient = match ephemeris_type {
-            enums::TLEType::SP | enums::TLEType::XP => Some(xa_tle[XA_TLE_BTERM]),
+            4 | 6 => Some(xa_tle[XA_TLE_BTERM]),
             _ => None,
         };
 
         let srp_coefficient = match ephemeris_type {
-            enums::TLEType::SP | enums::TLEType::XP => Some(xa_tle[XA_TLE_AGOMGP]),
+            4 | 6 => Some(xa_tle[XA_TLE_AGOMGP]),
             _ => None,
         };
         ParsedTLE {
@@ -936,7 +938,7 @@ impl From<&ParsedTLE> for [f64; XA_TLE_SIZE] {
         xa_tle[XA_TLE_REVNUM] = value.revolution_number as f64;
 
         match value.ephemeris_type {
-            enums::TLEType::SGP | enums::TLEType::SGP4 => {
+            0 | 2 => {
                 if let Some(v) = value.mean_motion_1st_derivative {
                     xa_tle[XA_TLE_NDOT] = v;
                 }
@@ -948,7 +950,7 @@ impl From<&ParsedTLE> for [f64; XA_TLE_SIZE] {
                 }
             }
 
-            enums::TLEType::SP | enums::TLEType::XP => {
+            4 | 6 => {
                 if let Some(v) = value.mean_motion_1st_derivative {
                     xa_tle[XA_TLE_NDOT] = v;
                 }
@@ -959,6 +961,7 @@ impl From<&ParsedTLE> for [f64; XA_TLE_SIZE] {
                     xa_tle[XA_TLE_AGOMGP] = v;
                 }
             }
+            _ => {}
         }
 
         xa_tle
@@ -1053,11 +1056,11 @@ pub fn get_lines(sat_key: i64) -> Result<(String, String), String> {
     }
 }
 
-pub fn get_keys(order: enums::KeyOrder) -> Vec<i64> {
+pub fn get_keys(order: i32) -> Vec<i64> {
     let count = get_count() as usize;
     let mut keys = vec![0_i64; count];
     unsafe {
-        TleGetLoaded(order as i32, keys.as_mut_ptr());
+        TleGetLoaded(order, keys.as_mut_ptr());
     }
     keys
 }
@@ -1116,8 +1119,8 @@ mod tests {
     use approx::assert_abs_diff_eq;
 
     use super::*;
-    use crate::DLL_VERSION;
     use crate::test_lock::TEST_LOCK;
+    use crate::{DLL_VERSION, IDX_ORDER_DES, IDX_ORDER_READ};
 
     const SGP_LINE_1: &str = "1 11111U 98067A   25363.54791667 +.00012345  10000-1  20000-1 0 0900";
     const SGP_LINE_2: &str = "2 11111  30.0000  40.0000 0005000  60.0000  70.0000  1.2345678012345";
@@ -1228,10 +1231,10 @@ mod tests {
         let final_count = get_count();
         assert_eq!(final_count, 4);
 
-        let keys_asc = get_keys(enums::KeyOrder::LoadTime);
+        let keys_asc = get_keys(IDX_ORDER_READ);
         assert_eq!(keys_asc, vec![sgp4_key, sgp_key, xp_key, sp_key]);
 
-        let keys_desc = get_keys(enums::KeyOrder::Descending);
+        let keys_desc = get_keys(IDX_ORDER_DES);
         assert_eq!(keys_desc, vec![sp_key, xp_key, sgp4_key, sgp_key]);
 
         let _ = clear();
@@ -1254,8 +1257,8 @@ mod tests {
         let mut parsed_sgp = ParsedTLE {
             norad_id: SGP_NORAD_ID as i32,
             designator: Some(SGP_DESIGNATOR.to_string()),
-            ephemeris_type: enums::TLEType::SGP,
-            classification: enums::Classification::Unclassified,
+            ephemeris_type: 0,
+            classification: String::from("U"),
             epoch: EPOCH,
             inclination: INCLINATION,
             raan: RAAN,
@@ -1276,8 +1279,8 @@ mod tests {
         let mut parsed_sgp4 = ParsedTLE {
             norad_id: SGP4_NORAD_ID as i32,
             designator: Some(SGP4_DESIGNATOR.to_string()),
-            ephemeris_type: enums::TLEType::SGP4,
-            classification: enums::Classification::Confidential,
+            ephemeris_type: 2,
+            classification: String::from("C"),
             epoch: EPOCH,
             inclination: INCLINATION,
             raan: RAAN,
@@ -1298,8 +1301,8 @@ mod tests {
         let mut parsed_xp = ParsedTLE {
             norad_id: XP_NORAD_ID as i32,
             designator: Some(XP_DESIGNATOR.to_string()),
-            ephemeris_type: enums::TLEType::XP,
-            classification: enums::Classification::Secret,
+            ephemeris_type: 4,
+            classification: String::from("S"),
             epoch: EPOCH,
             inclination: INCLINATION,
             raan: RAAN,
@@ -1320,8 +1323,8 @@ mod tests {
         let mut parsed_sp = ParsedTLE {
             norad_id: SP_NORAD_ID as i32,
             designator: Some(SP_DESIGNATOR.to_string()),
-            ephemeris_type: enums::TLEType::SP,
-            classification: enums::Classification::Unclassified,
+            ephemeris_type: 6,
+            classification: String::from("U"),
             epoch: EPOCH,
             inclination: INCLINATION,
             raan: RAAN,
@@ -1386,9 +1389,9 @@ mod tests {
             epsilon = 1e-10
         );
         assert_eq!(parsed_sgp.ballistic_coefficient, None);
-        assert_eq!(parsed_sgp.ephemeris_type, enums::TLEType::SGP);
+        assert_eq!(parsed_sgp.ephemeris_type, 0);
         assert_eq!(parsed_sgp.srp_coefficient, None);
-        assert_eq!(parsed_sgp.classification, enums::Classification::Unclassified);
+        assert_eq!(parsed_sgp.classification, String::from("U"));
         assert_eq!(parsed_sgp.epoch, EPOCH);
         assert_eq!(parsed_sgp.inclination, INCLINATION);
         assert_eq!(parsed_sgp.raan, RAAN);
@@ -1413,9 +1416,9 @@ mod tests {
             epsilon = 1e-10
         );
         assert_eq!(parsed_sgp4.ballistic_coefficient, None);
-        assert_eq!(parsed_sgp4.ephemeris_type, enums::TLEType::SGP4);
+        assert_eq!(parsed_sgp4.ephemeris_type, 2);
         assert_eq!(parsed_sgp4.srp_coefficient, None);
-        assert_eq!(parsed_sgp4.classification, enums::Classification::Confidential);
+        assert_eq!(parsed_sgp4.classification, String::from("C"));
         assert_eq!(parsed_sgp4.epoch, EPOCH);
         assert_eq!(parsed_sgp4.inclination, INCLINATION);
         assert_eq!(parsed_sgp4.raan, RAAN);
@@ -1440,9 +1443,9 @@ mod tests {
             XP_BALLISTIC_COEFFICIENT,
             epsilon = 1e-10
         );
-        assert_eq!(parsed_xp.ephemeris_type, enums::TLEType::XP);
+        assert_eq!(parsed_xp.ephemeris_type, 4);
         assert_abs_diff_eq!(parsed_xp.srp_coefficient.unwrap(), XP_SRP_COEFFICIENT, epsilon = 1e-10);
-        assert_eq!(parsed_xp.classification, enums::Classification::Secret);
+        assert_eq!(parsed_xp.classification, String::from("S"));
         assert_eq!(parsed_xp.epoch, EPOCH);
         assert_eq!(parsed_xp.inclination, INCLINATION);
         assert_eq!(parsed_xp.raan, RAAN);
@@ -1463,9 +1466,9 @@ mod tests {
             SP_BALLISTIC_COEFFICIENT,
             epsilon = 1e-10
         );
-        assert_eq!(parsed_sp.ephemeris_type, enums::TLEType::SP);
+        assert_eq!(parsed_sp.ephemeris_type, 6);
         assert_abs_diff_eq!(parsed_sp.srp_coefficient.unwrap(), SP_SRP_COEFFICIENT, epsilon = 1e-10);
-        assert_eq!(parsed_sp.classification, enums::Classification::Unclassified);
+        assert_eq!(parsed_sp.classification, String::from("U"));
         assert_eq!(parsed_sp.epoch, EPOCH);
         assert_eq!(parsed_sp.inclination, INCLINATION);
         assert_eq!(parsed_sp.raan, RAAN);

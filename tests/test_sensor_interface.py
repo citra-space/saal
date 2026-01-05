@@ -3,7 +3,7 @@ from typing import Generator
 
 import pytest
 
-from saal import KeyOrder, MainInterface, SensorInterface
+from pysaal import MainInterface, SensorInterface
 
 LOCK = threading.RLock()
 
@@ -61,7 +61,7 @@ def test_load_file(sensor: SensorInterface) -> None:
 def test_get_arrays(sensor: SensorInterface) -> None:
     sensor.load_card(SENSOR_CARD)
     sensor.load_card(NOISE_CARD)
-    keys = sensor.get_keys(KeyOrder.LoadTime)
+    keys = sensor.get_keys(2)
     key = keys[-1]
     xa_sen, xs_sen = sensor.get_arrays(key)
     sensor.clear()

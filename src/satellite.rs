@@ -1,7 +1,6 @@
 // This wrapper file was generated automatically by the GenDllWrappers program.
 #![allow(non_snake_case)]
 #![allow(dead_code)]
-use crate::enums;
 use std::os::raw::c_char;
 
 unsafe extern "C" {
@@ -403,11 +402,11 @@ pub fn get_relative_array(
     target_posvel: &[f64; 6],
     chase_posvel: &[f64; 6],
     utc_ds50: f64,
-    frame: enums::UVWType,
+    frame: i32,
 ) -> [f64; XA_DELTA_SIZE] {
     let mut xa_delta: [f64; XA_DELTA_SIZE] = [0.0; XA_DELTA_SIZE];
     unsafe {
-        SatStateEphCom_OS(target_posvel, chase_posvel, utc_ds50, frame as i32, &mut xa_delta);
+        SatStateEphCom_OS(target_posvel, chase_posvel, utc_ds50, frame, &mut xa_delta);
     }
     xa_delta
 }
@@ -456,7 +455,7 @@ mod tests {
             CHASE_TEME_VZ,
         ];
         let utc_ds50 = 25567.0; // Some arbitrary date
-        let delta = get_relative_array(&target_posvel, &chase_posvel, utc_ds50, enums::UVWType::Inertial);
+        let delta = get_relative_array(&target_posvel, &chase_posvel, utc_ds50, 1);
 
         assert_abs_diff_eq!(delta[XA_DELTA_PRADIAL], -4.0, epsilon = 1e-4);
         assert_abs_diff_eq!(delta[XA_DELTA_PINTRCK], 1.0, epsilon = 1e-4);

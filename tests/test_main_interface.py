@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from saal import DuplicateKeyMode, KeyMode, MainInterface
+from pysaal import MainInterface
 
 
 def test_get_dll_info() -> None:
@@ -13,20 +13,20 @@ def test_get_dll_info() -> None:
 
 def test_get_key_mode() -> None:
     interface = MainInterface()
-    assert interface.key_mode is KeyMode.DirectMemoryAccess
+    assert interface.key_mode == 1
 
 
 def test_set_duplicate_key_mode_return_key() -> None:
     interface = MainInterface()
-    interface.duplicate_key_mode = DuplicateKeyMode.ReturnKey
-    assert interface.duplicate_key_mode is DuplicateKeyMode.ReturnKey
+    interface.duplicate_key_mode = 1
+    assert interface.duplicate_key_mode == 1
     interface.reset_key_mode()
 
 
 def test_get_duplicate_key_mode_return_zero() -> None:
     interface = MainInterface()
-    interface.duplicate_key_mode = DuplicateKeyMode.ReturnZero
-    assert interface.duplicate_key_mode is DuplicateKeyMode.ReturnZero
+    interface.duplicate_key_mode = 0
+    assert interface.duplicate_key_mode == 0
     interface.reset_key_mode()
 
 

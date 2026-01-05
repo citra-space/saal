@@ -1,6 +1,6 @@
 import pytest
 
-from saal import MainInterface, TimeInterface
+from pysaal import MainInterface, TimeInterface
 
 
 def test_get_dll_info() -> None:

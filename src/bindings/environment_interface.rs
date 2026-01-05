@@ -1,7 +1,6 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use super::enums::{py_fundamental_catalog, PyFundamentalCatalog};
 use crate::environment::{
     get_dll_info, get_earth_flattening, get_earth_mu, get_earth_radius, get_earth_rotation_acceleration,
     get_earth_rotation_rate, get_fundamental_catalog, get_j2, get_j3, get_j4, get_j5, load_from_file,
@@ -83,19 +82,21 @@ impl EnvironmentInterface {
     }
 
     #[getter]
-    fn fundamental_catalog(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let catalog = get_fundamental_catalog().map_err(PyRuntimeError::new_err)?;
-        py_fundamental_catalog(py, catalog)
+    fn fundamental_catalog(&self) -> PyResult<i32> {
+        get_fundamental_catalog().map_err(PyRuntimeError::new_err)
     }
 
     #[setter]
-    fn set_fundamental_catalog(&self, catalog: PyFundamentalCatalog) -> PyResult<()> {
-        set_fundamental_catalog(catalog.into());
+    fn set_fundamental_catalog(&self, catalog: i32) -> PyResult<()> {
+        set_fundamental_catalog(catalog);
         Ok(())
     }
 }
 
 pub fn register_environment_interface(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     parent_module.add_class::<EnvironmentInterface>()?;
+    let class = parent_module.getattr("EnvironmentInterface")?;
+    class.setattr("XF_FKMOD_4", crate::environment::XF_FKMOD_4)?;
+    class.setattr("XF_FKMOD_5", crate::environment::XF_FKMOD_5)?;
     Ok(())
 }

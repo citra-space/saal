@@ -1,9 +1,7 @@
 #![cfg(feature = "python")]
 
-use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-mod enums;
 mod astro_interface;
 mod environment_interface;
 mod main_interface;
@@ -22,6 +20,5 @@ pub fn register_bindings(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     sgp4_interface::register_sgp4_interface(parent_module)?;
     time_interface::register_time_func_interface(parent_module)?;
     tle_interface::register_tle_interface(parent_module)?;
-    enums::register_enums(parent_module)?;
     Ok(())
 }

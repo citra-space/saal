@@ -4,7 +4,6 @@ use pyo3::prelude::*;
 use crate::DLL_VERSION;
 use crate::sgp4::{self, XA_SGP4OUT_SIZE};
 use crate::tle;
-use super::enums::PySGP4OutputEphemerisFrame;
 
 #[pyclass]
 pub struct SGP4Interface {
@@ -76,9 +75,9 @@ impl SGP4Interface {
         start: f64,
         stop: f64,
         step: f64,
-        frame: PySGP4OutputEphemerisFrame,
+        frame: i32,
     ) -> PyResult<Vec<f64>> {
-        sgp4::get_ephemeris(sat_key, start, stop, step, frame.into()).map_err(PyRuntimeError::new_err)
+        sgp4::get_ephemeris(sat_key, start, stop, step, frame).map_err(PyRuntimeError::new_err)
     }
 
     fn array_to_ephemeris(
@@ -87,9 +86,9 @@ impl SGP4Interface {
         start: f64,
         stop: f64,
         step: f64,
-        frame: PySGP4OutputEphemerisFrame,
+        frame: i32,
     ) -> PyResult<Vec<f64>> {
-        sgp4::array_to_ephemeris(&xa_tle, start, stop, step, frame.into()).map_err(PyRuntimeError::new_err)
+        sgp4::array_to_ephemeris(&xa_tle, start, stop, step, frame).map_err(PyRuntimeError::new_err)
     }
 
     fn fit_xp_array(
@@ -131,5 +130,19 @@ impl SGP4Interface {
 
 pub fn register_sgp4_interface(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     parent_module.add_class::<SGP4Interface>()?;
+    let class = parent_module.getattr("SGP4Interface")?;
+    class.setattr("SGP4_EPHEM_ECI", sgp4::SGP4_EPHEM_ECI)?;
+    class.setattr("SGP4_EPHEM_J2K", sgp4::SGP4_EPHEM_J2K)?;
+    class.setattr("SGP4_TIMETYPE_MSE", sgp4::SGP4_TIMETYPE_MSE)?;
+    class.setattr("SGP4_TIMETYPE_DS50UTC", sgp4::SGP4_TIMETYPE_DS50UTC)?;
+    class.setattr("DYN_SS_BASIC", sgp4::DYN_SS_BASIC)?;
+    class.setattr("GP_ERR_NONE", sgp4::GP_ERR_NONE)?;
+    class.setattr("GP_ERR_BADFK", sgp4::GP_ERR_BADFK)?;
+    class.setattr("GP_ERR_ANEGATIVE", sgp4::GP_ERR_ANEGATIVE)?;
+    class.setattr("GP_ERR_ATOOLARGE", sgp4::GP_ERR_ATOOLARGE)?;
+    class.setattr("GP_ERR_EHYPERPOLIC", sgp4::GP_ERR_EHYPERPOLIC)?;
+    class.setattr("GP_ERR_ENEGATIVE", sgp4::GP_ERR_ENEGATIVE)?;
+    class.setattr("GP_ERR_MATOOLARGE", sgp4::GP_ERR_MATOOLARGE)?;
+    class.setattr("GP_ERR_E2TOOLARGE", sgp4::GP_ERR_E2TOOLARGE)?;
     Ok(())
 }

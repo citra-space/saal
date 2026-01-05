@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import AssociationStatus, B3Type, Classification, ObsInterface, ParsedB3, PositionInTrack
+from saal import ObsInterface, ParsedB3
 
 B3_CARD = "U0001151013352142520112J85202 2220398         -01207880+03706326+05814970 9 4  10001100011"
 
@@ -16,7 +16,7 @@ def obs_iface() -> ObsInterface:
 @pytest.fixture(scope="module")
 def parsed_b3() -> ParsedB3:
     obs = ParsedB3()
-    obs.classification = Classification.Unclassified
+    obs.classification = "U"
     obs.norad_id = 11111
     obs.sensor_number = 500
     obs.epoch = 25934.75
@@ -28,11 +28,11 @@ def parsed_b3() -> ParsedB3:
     obs.elevation = None
     obs.elevation_rate = None
     obs.azimuth_rate = None
-    obs.year_of_equinox = 0.0
+    obs.year_of_equinox = 0
     obs.range_acceleration = None
-    obs.observation_type = B3Type.Nine
-    obs.track_position = PositionInTrack.End
-    obs.association_status = AssociationStatus.High
+    obs.observation_type = 9
+    obs.track_position = 5
+    obs.association_status = 1
     obs.site_tag = 11111
     obs.spadoc_tag = 11111
     obs.position = [0.0, 0.0, 0.0]

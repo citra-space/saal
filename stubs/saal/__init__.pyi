@@ -22,269 +22,23 @@ Example:
 
 from __future__ import annotations
 
-class KeyMode:
-    """Global key mode for all keys.
-
-    Controls whether duplicate keys are rejected or stored with DMA.
-
-    Example:
-        ```python
-        from saal import KeyMode
-
-        mode = int(KeyMode.DirectMemoryAccess)
-        print(mode)
-        ```
-
-        Output:
-        ```bash
-        1
-        ```
-    """
-
-    NoDuplicates: KeyMode
-    DirectMemoryAccess: KeyMode
-
-    def __int__(self) -> int:
-        """Return the underlying integer value.
-
-        Example:
-            ```python
-            from saal import KeyMode
-
-            value = int(KeyMode.NoDuplicates)
-            print(value)
-            ```
-
-            Output:
-            ```bash
-            0
-            ```
-        """
-        ...
-
-class KeyOrder:
-    """Ordering options for retrieved keys."""
-
-    Ascending: KeyOrder
-    Descending: KeyOrder
-    Fastest: KeyOrder
-    LoadTime: KeyOrder
-
-    def __int__(self) -> int:
-        """Return the underlying integer value."""
-        ...
-
-class DuplicateKeyMode:
-    """Duplicate key handling behavior.
-
-    Controls whether duplicates yield 0 or the existing key.
-
-    Example:
-        ```python
-        from saal import DuplicateKeyMode
-
-        value = int(DuplicateKeyMode.ReturnZero)
-        print(value)
-        ```
-
-        Output:
-        ```bash
-        0
-        ```
-    """
-
-    ReturnZero: DuplicateKeyMode
-    ReturnKey: DuplicateKeyMode
-
-    def __int__(self) -> int:
-        """Return the underlying integer value.
-
-        Example:
-            ```python
-            from saal import DuplicateKeyMode
-
-            value = int(DuplicateKeyMode.ReturnKey)
-            print(value)
-            ```
-
-            Output:
-            ```bash
-            1
-            ```
-        """
-        ...
-
-class ElsetKeyMode:
-    """Key mode for ELSET keys.
-
-    Controls duplicate handling for ELSET keys only.
-
-    Example:
-        ```python
-        from saal import ElsetKeyMode
-
-        value = int(ElsetKeyMode.NoDuplicates)
-        print(value)
-        ```
-
-        Output:
-        ```bash
-        0
-        ```
-    """
-
-    NoDuplicates: ElsetKeyMode
-    DirectMemoryAccess: ElsetKeyMode
-
-    def __int__(self) -> int:
-        """Return the underlying integer value.
-
-        Example:
-            ```python
-            from saal import ElsetKeyMode
-
-            value = int(ElsetKeyMode.DirectMemoryAccess)
-            print(value)
-            ```
-
-            Output:
-            ```bash
-            1
-            ```
-        """
-        ...
-
-class ElementType:
-    """Orbital element type identifiers."""
-
-    TwoLineSGP: ElementType
-    TwoLineSGP4: ElementType
-    TwoLineSP: ElementType
-    SPVector: ElementType
-    VCM: ElementType
-    Ephemeris: ElementType
-    TwoLineXP: ElementType
-
-    def __int__(self) -> int:
-        """Return the underlying integer value.
-
-        Example:
-            ```python
-            from saal import ElementType
-
-            value = int(ElementType.TwoLineSGP4)
-            print(value)
-            ```
-
-            Output:
-            ```bash
-            2
-            ```
-        """
-        ...
-
-class TLEType:
-    """TLE ephemeris type identifiers."""
-
-    SGP: TLEType
-    SGP4: TLEType
-    SP: TLEType
-    XP: TLEType
-
-    def __int__(self) -> int:
-        """Return the underlying integer value."""
-        ...
-
-class Classification:
-    """TLE classification codes."""
-
-    Unclassified: Classification
-    Confidential: Classification
-    Secret: Classification
-
-    def __int__(self) -> int:
-        """Return the underlying integer value."""
-        ...
-
-class B3Type:
-    """Observation B3 record types."""
-
-    Zero: B3Type
-    One: B3Type
-    Two: B3Type
-    Three: B3Type
-    Four: B3Type
-    Five: B3Type
-    Six: B3Type
-    Eight: B3Type
-    Nine: B3Type
-
-    def __int__(self) -> int:
-        """Return the underlying integer value."""
-        ...
-
-class PositionInTrack:
-    """Observation track position indicators."""
-
-    Beginning: PositionInTrack
-    Middle: PositionInTrack
-    End: PositionInTrack
-
-    def __int__(self) -> int:
-        """Return the underlying integer value."""
-        ...
-
-class AssociationStatus:
-    """Observation association status indicators."""
-
-    Statistical: AssociationStatus
-    High: AssociationStatus
-    Medium: AssociationStatus
-    Low: AssociationStatus
-    None: AssociationStatus
-
-    def __int__(self) -> int:
-        """Return the underlying integer value."""
-        ...
-
-class FundamentalCatalog:
-    """Fundamental catalog selection (FK4 or FK5)."""
-
-    Four: FundamentalCatalog
-    Five: FundamentalCatalog
-
-    def __int__(self) -> int:
-        """Return the underlying integer value.
-
-        Example:
-            ```python
-            from saal import FundamentalCatalog
-
-            value = int(FundamentalCatalog.Five)
-            print(value)
-            ```
-
-            Output:
-            ```bash
-            5
-            ```
-        """
-        ...
-
-class SGP4OutputEphemerisFrame:
-    """SGP4 output ephemeris frames."""
-
-    TEME: SGP4OutputEphemerisFrame
-    J2000: SGP4OutputEphemerisFrame
-
-    def __int__(self) -> int:
-        """Return the underlying integer value."""
-        ...
-
 class MainInterface:
     """Access DllMain settings, messages, and key modes."""
 
     DLL_VERSION: str
+    ALL_KEYMODE_NODUP: int
+    ALL_KEYMODE_DMA: int
+    ELSET_KEYMODE_NODUP: int
+    ELSET_KEYMODE_DMA: int
+    DUPKEY_ZERO: int
+    DUPKEY_ACTUAL: int
+    IDX_ORDER_ASC: int
+    IDX_ORDER_DES: int
+    IDX_ORDER_READ: int
+    IDX_ORDER_QUICK: int
+    TIME_IS_MSE: int
+    TIME_IS_TAI: int
+    TIME_IS_UTC: int
 
     def __init__(self, file_name: str | None = None) -> None:
         """Create an interface and optionally load an input file."""
@@ -320,7 +74,7 @@ class MainInterface:
         ...
 
     @property
-    def key_mode(self) -> KeyMode:
+    def key_mode(self) -> int:
         """Global key mode for all keys.
 
         Example:
@@ -339,7 +93,7 @@ class MainInterface:
         ...
 
     @key_mode.setter
-    def key_mode(self, mode: KeyMode) -> None:
+    def key_mode(self, mode: int) -> None:
         """Set the global key mode for all keys.
 
         Example:
@@ -379,7 +133,7 @@ class MainInterface:
         ...
 
     @property
-    def elset_key_mode(self) -> ElsetKeyMode:
+    def elset_key_mode(self) -> int:
         """ELSET key mode.
 
         Example:
@@ -399,7 +153,7 @@ class MainInterface:
         ...
 
     @elset_key_mode.setter
-    def elset_key_mode(self, mode: ElsetKeyMode) -> None:
+    def elset_key_mode(self, mode: int) -> None:
         """Set the ELSET key mode.
 
         Example:
@@ -419,12 +173,12 @@ class MainInterface:
         ...
 
     @property
-    def duplicate_key_mode(self) -> DuplicateKeyMode:
+    def duplicate_key_mode(self) -> int:
         """Duplicate key mode behavior."""
         ...
 
     @duplicate_key_mode.setter
-    def duplicate_key_mode(self, mode: DuplicateKeyMode) -> None:
+    def duplicate_key_mode(self, mode: int) -> None:
         """Set the behavior of returned keys when a duplicate is loaded in NoDuplicates mode.
 
         Check DuplicateKeyMode for return options.
@@ -448,6 +202,8 @@ class MainInterface:
 class AstroInterface:
     """Astronomical conversion utilities."""
 
+    XF_CONV_SGP42SGP: int
+
     def __init__(self) -> None: ...
     @property
     def info(self) -> str:
@@ -468,6 +224,9 @@ class AstroInterface:
 
 class EnvironmentInterface:
     """Access Earth constants and fundamental catalog settings."""
+
+    XF_FKMOD_4: int
+    XF_FKMOD_5: int
 
     def __init__(self, file_name: str | None = None) -> None:
         """Create an interface and optionally load an input file."""
@@ -682,7 +441,7 @@ class EnvironmentInterface:
         ...
 
     @property
-    def fundamental_catalog(self) -> FundamentalCatalog:
+    def fundamental_catalog(self) -> int:
         """Fundamental catalog selection (FK4 or FK5).
 
         Example:
@@ -701,7 +460,7 @@ class EnvironmentInterface:
         ...
 
     @fundamental_catalog.setter
-    def fundamental_catalog(self, catalog: FundamentalCatalog) -> None:
+    def fundamental_catalog(self, catalog: int) -> None:
         """Set the fundamental catalog selection.
 
         Example:
@@ -926,6 +685,20 @@ class TimeInterface:
 class SGP4Interface:
     """Access SGP4 propagation helpers."""
 
+    SGP4_EPHEM_ECI: int
+    SGP4_EPHEM_J2K: int
+    SGP4_TIMETYPE_MSE: int
+    SGP4_TIMETYPE_DS50UTC: int
+    DYN_SS_BASIC: int
+    GP_ERR_NONE: int
+    GP_ERR_BADFK: int
+    GP_ERR_ANEGATIVE: int
+    GP_ERR_ATOOLARGE: int
+    GP_ERR_EHYPERPOLIC: int
+    GP_ERR_ENEGATIVE: int
+    GP_ERR_MATOOLARGE: int
+    GP_ERR_E2TOOLARGE: int
+
     def __init__(self) -> None: ...
     @property
     def info(self) -> str: ...
@@ -947,7 +720,7 @@ class SGP4Interface:
         start: float,
         stop: float,
         step: float,
-        frame: SGP4OutputEphemerisFrame,
+        frame: int,
     ) -> list[float]: ...
     def array_to_ephemeris(
         self,
@@ -955,7 +728,7 @@ class SGP4Interface:
         start: float,
         stop: float,
         step: float,
-        frame: SGP4OutputEphemerisFrame,
+        frame: int,
     ) -> list[float]: ...
     def fit_xp_array(
         self,
@@ -980,7 +753,7 @@ class ParsedB3:
 
     def __init__(self) -> None: ...
 
-    classification: Classification
+    classification: str
     norad_id: int
     sensor_number: int
     epoch: float
@@ -990,13 +763,13 @@ class ParsedB3:
     right_ascension: float | None
     range: float | None
     range_rate: float | None
-    year_of_equinox: float | None
+    year_of_equinox: int | None
     elevation_rate: float | None
     azimuth_rate: float | None
     range_acceleration: float | None
-    observation_type: B3Type
-    track_position: PositionInTrack
-    association_status: AssociationStatus
+    observation_type: int
+    track_position: int
+    association_status: int
     site_tag: int
     spadoc_tag: int
     position: list[float] | None
@@ -1005,6 +778,19 @@ class ParsedB3:
 
 class ObsInterface:
     """Access observation parsing helpers."""
+
+    EQUINOX_OBSTIME: int
+    EQUINOX_OBSYEAR: int
+    EQUINOX_J2K: int
+    EQUINOX_B1950: int
+    OBSFORM_B3: int
+    OBSFORM_TTY: int
+    OBSFORM_CSV: int
+    OBSFORM_RF: int
+    BADOBSKEY: int
+    DUPOBSKEY: int
+    OBS_KEYMODE_NODUP: int
+    OBS_KEYMODE_DMA: int
 
     def __init__(self) -> None: ...
 
@@ -1038,6 +824,15 @@ class ParsedSensor:
 class SensorInterface:
     """Access sensor parsing and storage helpers."""
 
+    SEN_KEYMODE_NODUP: int
+    SEN_KEYMODE_DMA: int
+    BADSENKEY: int
+    DUPSENKEY: int
+    SENLOC_TYPE_ECR: int
+    SENLOC_TYPE_EFG: int
+    SENLOC_TYPE_LLH: int
+    SENLOC_TYPE_ECI: int
+
     def __init__(self) -> None: ...
 
     @property
@@ -1047,7 +842,7 @@ class SensorInterface:
     def prune_missing_locations(self) -> None: ...
     def get_astronomical_ll(self, sen_key: int) -> list[float]: ...
     def get_lla(self, sen_key: int) -> list[float] | None: ...
-    def get_keys(self, order: KeyOrder) -> list[int]: ...
+    def get_keys(self, order: int) -> list[int]: ...
     def load_card(self, card: str) -> None: ...
     def remove(self, sen_key: int) -> None: ...
     def get_count(self) -> int: ...
@@ -1068,11 +863,11 @@ class ParsedTLE:
     argument_of_perigee: float
     mean_anomaly: float
     mean_motion: float
-    ephemeris_type: TLEType
+    ephemeris_type: int
     element_set_number: int
     revolution_number: int
     designator: str | None
-    classification: Classification
+    classification: str
     mean_motion_1st_derivative: float | None
     mean_motion_2nd_derivative: float | None
     b_star: float | None
@@ -1083,6 +878,11 @@ class ParsedTLE:
 
 class TLEInterface:
     """Access TLE parsing and storage helpers."""
+
+    TLETYPE_SGP: int
+    TLETYPE_SGP4: int
+    TLETYPE_XP: int
+    TLETYPE_SP: int
 
     def __init__(self) -> None: ...
 
@@ -1099,7 +899,7 @@ class TLEInterface:
     def clear(self) -> None: ...
     def remove(self, sat_key: int) -> None: ...
     def get_count(self) -> int: ...
-    def get_keys(self, order: KeyOrder) -> list[int]: ...
+    def get_keys(self, order: int) -> list[int]: ...
     def get_lines(self, sat_key: int) -> tuple[str, str]: ...
     def get_arrays(self, sat_key: int) -> tuple[list[float], str]: ...
     def parse_lines(self, line_1: str, line_2: str) -> ParsedTLE: ...
@@ -1107,18 +907,6 @@ class TLEInterface:
 __all__ = [
     "MainInterface",
     "AstroInterface",
-    "DuplicateKeyMode",
-    "KeyMode",
-    "KeyOrder",
-    "ElsetKeyMode",
-    "ElementType",
-    "TLEType",
-    "Classification",
-    "B3Type",
-    "PositionInTrack",
-    "AssociationStatus",
-    "FundamentalCatalog",
-    "SGP4OutputEphemerisFrame",
     "EnvironmentInterface",
     "SGP4Interface",
     "ObsInterface",

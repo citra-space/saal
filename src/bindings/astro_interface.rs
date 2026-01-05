@@ -79,5 +79,7 @@ impl AstroInterface {
 
 pub fn register_astro_interface(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
     parent_module.add_class::<AstroInterface>()?;
+    let class = parent_module.getattr("AstroInterface")?;
+    class.setattr("XF_CONV_SGP42SGP", crate::astro::XF_CONV_SGP42SGP)?;
     Ok(())
 }

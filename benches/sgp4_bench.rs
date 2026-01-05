@@ -1,6 +1,5 @@
 use criterion::{BatchSize, BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use std::path::PathBuf;
-use saal::enums;
 
 fn bench_sgp4_wrappers(c: &mut Criterion) {
     let mut group = c.benchmark_group("sgp4");
@@ -13,7 +12,7 @@ fn bench_sgp4_wrappers(c: &mut Criterion) {
     let ephem_start = epoch - 1.0;
     let ephem_stop = epoch;
     let ephem_step = 5.0;
-    let ephem_frame = enums::SGP4OutputEphemerisFrame::TEME;
+    let ephem_frame = saal::sgp4::SGP4_EPHEM_ECI;
 
     let asset_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
     let asset_dir_str = asset_dir.to_str().expect("assets directory missing");

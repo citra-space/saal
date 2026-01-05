@@ -3,7 +3,7 @@ from typing import Generator
 
 import pytest
 
-from saal import Classification, KeyOrder, MainInterface, ParsedTLE, TLEInterface, TLEType
+from pysaal import MainInterface, ParsedTLE, TLEInterface
 
 LOCK = threading.Lock()
 
@@ -148,10 +148,10 @@ def test_get_keys(tle: TLEInterface) -> None:
     final_count = tle.get_count()
     assert final_count == 4
 
-    keys_load = tle.get_keys(KeyOrder.LoadTime)
+    keys_load = tle.get_keys(2)
     assert keys_load == [sgp4_key, sgp_key, xp_key, sp_key]
 
-    keys_desc = tle.get_keys(KeyOrder.Descending)
+    keys_desc = tle.get_keys(1)
     assert keys_desc == [sp_key, xp_key, sgp4_key, sgp_key]
 
 
@@ -165,8 +165,8 @@ def test_parsed_tles_to_lines(tle: TLEInterface) -> None:
     parsed_sgp = ParsedTLE()
     parsed_sgp.norad_id = int(SGP_NORAD_ID)
     parsed_sgp.designator = SGP_DESIGNATOR
-    parsed_sgp.ephemeris_type = TLEType.SGP
-    parsed_sgp.classification = Classification.Unclassified
+    parsed_sgp.ephemeris_type = 0
+    parsed_sgp.classification = "U"
     parsed_sgp.epoch = EPOCH
     parsed_sgp.inclination = INCLINATION
     parsed_sgp.raan = RAAN
@@ -185,8 +185,8 @@ def test_parsed_tles_to_lines(tle: TLEInterface) -> None:
     parsed_sgp4 = ParsedTLE()
     parsed_sgp4.norad_id = int(SGP4_NORAD_ID)
     parsed_sgp4.designator = SGP4_DESIGNATOR
-    parsed_sgp4.ephemeris_type = TLEType.SGP4
-    parsed_sgp4.classification = Classification.Confidential
+    parsed_sgp4.ephemeris_type = 2
+    parsed_sgp4.classification = "C"
     parsed_sgp4.epoch = EPOCH
     parsed_sgp4.inclination = INCLINATION
     parsed_sgp4.raan = RAAN
@@ -205,8 +205,8 @@ def test_parsed_tles_to_lines(tle: TLEInterface) -> None:
     parsed_xp = ParsedTLE()
     parsed_xp.norad_id = int(XP_NORAD_ID)
     parsed_xp.designator = XP_DESIGNATOR
-    parsed_xp.ephemeris_type = TLEType.XP
-    parsed_xp.classification = Classification.Secret
+    parsed_xp.ephemeris_type = 4
+    parsed_xp.classification = "S"
     parsed_xp.epoch = EPOCH
     parsed_xp.inclination = INCLINATION
     parsed_xp.raan = RAAN
@@ -225,8 +225,8 @@ def test_parsed_tles_to_lines(tle: TLEInterface) -> None:
     parsed_sp = ParsedTLE()
     parsed_sp.norad_id = int(SP_NORAD_ID)
     parsed_sp.designator = SP_DESIGNATOR
-    parsed_sp.ephemeris_type = TLEType.SP
-    parsed_sp.classification = Classification.Unclassified
+    parsed_sp.ephemeris_type = 6
+    parsed_sp.classification = "U"
     parsed_sp.epoch = EPOCH
     parsed_sp.inclination = INCLINATION
     parsed_sp.raan = RAAN
@@ -278,9 +278,9 @@ def test_arrays_to_parsed_tles(tle: TLEInterface) -> None:
     assert parsed_sgp.mean_motion_1st_derivative == pytest.approx(SGP_MEAN_MOTION_1ST_DERIVATIVE, abs=1.0e-10)
     assert parsed_sgp.mean_motion_2nd_derivative == pytest.approx(SGP_MEAN_MOTION_2ND_DERIVATIVE, abs=1.0e-10)
     assert parsed_sgp.ballistic_coefficient is None
-    assert parsed_sgp.ephemeris_type == TLEType.SGP
+    assert parsed_sgp.ephemeris_type == 0
     assert parsed_sgp.srp_coefficient is None
-    assert parsed_sgp.classification == Classification.Unclassified
+    assert parsed_sgp.classification == "U"
     assert parsed_sgp.epoch == EPOCH
     assert parsed_sgp.inclination == INCLINATION
     assert parsed_sgp.raan == RAAN
@@ -295,9 +295,9 @@ def test_arrays_to_parsed_tles(tle: TLEInterface) -> None:
     assert parsed_sgp4.mean_motion_1st_derivative == pytest.approx(SGP4_MEAN_MOTION_1ST_DERIVATIVE, abs=1.0e-10)
     assert parsed_sgp4.mean_motion_2nd_derivative == pytest.approx(SGP4_MEAN_MOTION_2ND_DERIVATIVE, abs=1.0e-10)
     assert parsed_sgp4.ballistic_coefficient is None
-    assert parsed_sgp4.ephemeris_type == TLEType.SGP4
+    assert parsed_sgp4.ephemeris_type == 2
     assert parsed_sgp4.srp_coefficient is None
-    assert parsed_sgp4.classification == Classification.Confidential
+    assert parsed_sgp4.classification == "C"
     assert parsed_sgp4.epoch == EPOCH
     assert parsed_sgp4.inclination == INCLINATION
     assert parsed_sgp4.raan == RAAN
@@ -312,9 +312,9 @@ def test_arrays_to_parsed_tles(tle: TLEInterface) -> None:
     assert parsed_xp.mean_motion_1st_derivative == pytest.approx(XP_MEAN_MOTION_1ST_DERIVATIVE, abs=1.0e-10)
     assert parsed_xp.mean_motion_2nd_derivative is None
     assert parsed_xp.ballistic_coefficient == pytest.approx(XP_BALLISTIC_COEFFICIENT, abs=1.0e-10)
-    assert parsed_xp.ephemeris_type == TLEType.XP
+    assert parsed_xp.ephemeris_type == 4
     assert parsed_xp.srp_coefficient == pytest.approx(XP_SRP_COEFFICIENT, abs=1.0e-10)
-    assert parsed_xp.classification == Classification.Secret
+    assert parsed_xp.classification == "S"
     assert parsed_xp.epoch == EPOCH
     assert parsed_xp.inclination == INCLINATION
     assert parsed_xp.raan == RAAN
@@ -329,9 +329,9 @@ def test_arrays_to_parsed_tles(tle: TLEInterface) -> None:
     assert parsed_sp.mean_motion_1st_derivative is None
     assert parsed_sp.mean_motion_2nd_derivative is None
     assert parsed_sp.ballistic_coefficient == pytest.approx(SP_BALLISTIC_COEFFICIENT, abs=1.0e-10)
-    assert parsed_sp.ephemeris_type == TLEType.SP
+    assert parsed_sp.ephemeris_type == 6
     assert parsed_sp.srp_coefficient == pytest.approx(SP_SRP_COEFFICIENT, abs=1.0e-10)
-    assert parsed_sp.classification == Classification.Unclassified
+    assert parsed_sp.classification == "U"
     assert parsed_sp.epoch == EPOCH
     assert parsed_sp.inclination == INCLINATION
     assert parsed_sp.raan == RAAN

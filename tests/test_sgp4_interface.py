@@ -3,7 +3,7 @@ from typing import Generator
 
 import pytest
 
-from saal import MainInterface, SGP4Interface, SGP4OutputEphemerisFrame, TLEInterface
+from pysaal import MainInterface, SGP4Interface, TLEInterface
 
 SGP4_LINE_1 = "1 22222C 15058A   25363.54791667 +.00012345  10000-1  20000-1 2 0900"
 SGP4_LINE_2 = "2 22222  30.0000  40.0000 0005000  60.0000  70.0000  1.2345678012345"
@@ -178,7 +178,7 @@ def test_get_ephemeris(tle: TLEInterface, sgp4: SGP4Interface) -> None:
     start = EPOCH - 1.0
     stop = EPOCH
     step = 5.0
-    frame = SGP4OutputEphemerisFrame.TEME
+    frame = 1
 
     sgp4_ephem_by_key = sgp4.get_ephemeris(sgp4_key, start, stop, step, frame)
     xp_ephem_by_key = sgp4.get_ephemeris(xp_key, start, stop, step, frame)

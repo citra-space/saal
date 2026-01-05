@@ -1,5 +1,4 @@
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use saal::enums::FundamentalCatalog;
 
 fn bench_environment_wrappers(c: &mut Criterion) {
     let mut group = c.benchmark_group("environment");
@@ -15,8 +14,8 @@ fn bench_environment_wrappers(c: &mut Criterion) {
     });
     group.bench_function(BenchmarkId::new("set_fundamental_catalog", "toggle"), |b| {
         b.iter(|| {
-            saal::environment::set_fundamental_catalog(black_box(FundamentalCatalog::Four));
-            saal::environment::set_fundamental_catalog(black_box(FundamentalCatalog::Five));
+            saal::environment::set_fundamental_catalog(black_box(saal::environment::XF_FKMOD_4));
+            saal::environment::set_fundamental_catalog(black_box(saal::environment::XF_FKMOD_5));
         });
     });
     group.bench_function(BenchmarkId::new("get_j2", "value"), |b| {

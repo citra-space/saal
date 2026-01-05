@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import DuplicateKeyMode, KeyMode, MainInterface
+from saal import MainInterface
 
 
 @pytest.fixture(scope="module")
@@ -21,8 +21,8 @@ def test_bench_main_get_key_mode(benchmark: BenchmarkFixture, main_iface: MainIn
 
 def test_bench_main_set_duplicate_key_mode(benchmark: BenchmarkFixture, main_iface: MainInterface) -> None:
     def run() -> None:
-        main_iface.duplicate_key_mode = DuplicateKeyMode.ReturnKey
-        main_iface.duplicate_key_mode = DuplicateKeyMode.ReturnZero
+        main_iface.duplicate_key_mode = 1
+        main_iface.duplicate_key_mode = 0
         main_iface.reset_key_mode()
 
     benchmark(run)
@@ -30,8 +30,8 @@ def test_bench_main_set_duplicate_key_mode(benchmark: BenchmarkFixture, main_ifa
 
 def test_bench_main_set_key_mode(benchmark: BenchmarkFixture, main_iface: MainInterface) -> None:
     def run() -> None:
-        main_iface.key_mode = KeyMode.NoDuplicates
-        main_iface.key_mode = KeyMode.DirectMemoryAccess
+        main_iface.key_mode = 0
+        main_iface.key_mode = 1
         main_iface.reset_key_mode()
 
     benchmark(run)
