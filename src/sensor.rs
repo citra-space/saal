@@ -988,6 +988,7 @@ pub fn get_arrays(sen_key: i64) -> Result<([f64; XA_SEN_SIZE], String), String> 
 
 #[cfg(test)]
 mod tests {
+    use crate::test_lock::TEST_LOCK;
     use super::*;
 
     const SENSOR_CARD: &str = "211  3381724 -25333969 -1521161 -5083089  3530462  U SOCORRO CAM1              S";
@@ -995,6 +996,7 @@ mod tests {
 
     #[test]
     fn test_load_file() {
+        let _lock = TEST_LOCK.lock().unwrap();
         load_file("tests/data/sensors.dat").unwrap();
         assert_eq!(count_loaded(), 108);
         let sensors = parse_all().unwrap();
@@ -1006,6 +1008,7 @@ mod tests {
 
     #[test]
     fn test_get_arrays() {
+        let _lock = TEST_LOCK.lock().unwrap();
         load_card(SENSOR_CARD).unwrap();
         load_card(NOISE_CARD).unwrap();
         let keys = get_keys(IDX_ORDER_READ);
