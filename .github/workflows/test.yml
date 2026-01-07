@@ -24,18 +24,17 @@ jobs:
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             manylinux: 2_24
-          - name: linux-x86_64-musl
-            runner: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            manylinux: musllinux_1_2
+            container: ''
           - name: linux-aarch64-gnu
             runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             manylinux: 2_24
+            container: quay.io/pypa/manylinux_2_24_aarch64
           - name: linux-aarch64-musl
             runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
             manylinux: musllinux_1_2
+            container: ''
           - name: macos-x86_64
             runner: macos-15-intel
             target: x86_64-apple-darwin
@@ -70,6 +69,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux }}
+          container: ${{ matrix.container }}
           args: --release
 
       - name: Build wheel
@@ -100,11 +100,6 @@ jobs:
             libc: gnu
             musl_image: ''
             target: x86_64-unknown-linux-gnu
-          - platform: linux-x86_64-musl
-            runner: ubuntu-latest
-            libc: musl
-            musl_image: quay.io/pypa/musllinux_1_2_x86_64
-            target: x86_64-unknown-linux-musl
           - platform: linux-aarch64-gnu
             runner: ubuntu-24.04-arm
             libc: gnu
