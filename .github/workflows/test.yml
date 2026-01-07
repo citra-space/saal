@@ -20,8 +20,8 @@ jobs:
           - name: linux-x86_64
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            rust_targets: x86_64-unknown-linux-gnu
-            linux_maturin_args: --target x86_64-unknown-linux-gnu --compatibility manylinux2014
+            rust_targets: x86_64-unknown-linux-gnu,x86_64-unknown-linux-musl
+            linux_maturin_args: --strip --target x86_64-unknown-linux-musl --compatibility musllinux_1_2
             mode: native
           - name: linux-aarch64
             runner: ubuntu-24.04-arm

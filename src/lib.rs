@@ -19,8 +19,6 @@ pub mod tle;
 use ctor::ctor;
 pub use get_set_string::GetSetString;
 #[cfg(feature = "python")]
-use pyo3::exceptions::PyRuntimeError;
-#[cfg(feature = "python")]
 use pyo3::prelude::*;
 use std::os::raw::c_char;
 use std::path::PathBuf;
