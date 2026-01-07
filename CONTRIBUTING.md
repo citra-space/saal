@@ -44,7 +44,7 @@ Formatting differences will fail CI.
 
 ### Typing and Tests (Python)
 
-    python -m mypy python/saal
+    python -m mypy python/pysaal
     pytest -v --tb=short tests
 
 All public Python APIs must be fully typed.  
@@ -111,8 +111,8 @@ Publishing requires:
 
 The following directories are kept in sync:
 
-- `stubs/saal/`
-- `python/saal/`
+- `stubs/pysaal/`
+- `python/pysaal/`
 
 Stub files are copied during `cargo make clean-all`.
 

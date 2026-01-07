@@ -106,8 +106,6 @@ fn main() {
         }
 
         if assets_dir.exists() {
-            let python_assets_dir = python_pkg_dir.join("assets");
-            fs::create_dir_all(&python_assets_dir).expect("Failed to create python/pysaal/assets directory");
             for entry in fs::read_dir(&assets_dir).expect("Failed to read assets directory") {
                 let entry = entry.expect("Failed to access entry in assets directory");
                 let path = entry.path();
@@ -116,7 +114,7 @@ fn main() {
                         println!("cargo:rerun-if-changed={}", path.display());
                     }
                     let file_name = path.file_name().expect("Invalid asset file name");
-                    let dest_path = python_assets_dir.join(file_name);
+                    let dest_path = python_pkg_dir.join(file_name);
                     fs::copy(&path, &dest_path).unwrap_or_else(|_| {
                         panic!("Failed to copy asset {} to {}", path.display(), dest_path.display())
                     });
