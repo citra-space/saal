@@ -53,24 +53,11 @@ jobs:
 
       - name: Build wheel (linux manylinux)
         if: matrix.mode == 'native' && startsWith(matrix.name, 'linux-')
-        run: |
-          docker run --rm \
-            -v "${{ github.workspace }}:/io" \
-            -e HOME=/root \
-            -w /io \
-            ${{ startsWith(matrix.name, 'linux-aarch64') && 'quay.io/pypa/manylinux2014_aarch64' || 'quay.io/pypa/manylinux2014_x86_64' }} \
-            bash -c '
-              set -euo pipefail
-              yum install -y curl gcc gcc-c++ make openssl-devel openssl
-              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup"
-              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-              source "$CARGO_HOME/env"
-              PYTHON_VERSION=3.11
-              TAG=${PYTHON_VERSION//./}
-              PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python
-              "$PY_BIN" -m pip install --upgrade pip maturin
-              "$PY_BIN" -m maturin build --release --compatibility manylinux2014 -i "$PY_BIN"
-            '
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: 2014
+          args: --release
 
       - name: Build wheel
         if: matrix.mode == 'native' && !startsWith(matrix.name, 'linux-')
