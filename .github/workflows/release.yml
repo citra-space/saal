@@ -69,8 +69,29 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Build wheel (linux musl)
+        if: ${{ matrix.target == 'aarch64-unknown-linux-musl' }}
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/io \
+            -e HOME=/root \
+            -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
+            -e RUST_TARGET=${{ matrix.target }} \
+            -w /io quay.io/pypa/musllinux_1_2_aarch64 \
+            sh -c '
+              apk add --no-cache curl build-base bzip2-dev && \
+              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
+              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
+              source "$CARGO_HOME/env" && \
+              rustup target add $RUST_TARGET && \
+              TAG=${PYTHON_VERSION//./} && \
+              PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
+              $PY_BIN -m pip install --upgrade pip maturin && \
+              $PY_BIN -m maturin build --release --target $RUST_TARGET
+            '
+
       - name: Build wheel (linux)
-        if: ${{ startsWith(matrix.name, 'linux-') }}
+        if: ${{ startsWith(matrix.name, 'linux-') && matrix.target != 'aarch64-unknown-linux-musl' }}
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
