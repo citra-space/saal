@@ -24,22 +24,18 @@ jobs:
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             manylinux: 2_24
-            compatibility: manylinux_2_24
           - name: linux-x86_64-musl
             runner: ubuntu-latest
             target: x86_64-unknown-linux-musl
             manylinux: musllinux_1_2
-            compatibility: musllinux_1_2
           - name: linux-aarch64-gnu
             runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             manylinux: 2_24
-            compatibility: manylinux_2_24
           - name: linux-aarch64-musl
             runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
             manylinux: musllinux_1_2
-            compatibility: musllinux_1_2
           - name: macos-x86_64
             runner: macos-15-intel
             target: x86_64-apple-darwin
@@ -65,6 +61,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Test Rust
+        if: ${{ !endsWith(matrix.target, '-musl') }}
         run: cargo test --target ${{ matrix.target }} --lib --tests --bins
 
       - name: Build wheel (linux)
@@ -73,7 +70,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux }}
-          args: --release --compatibility ${{ matrix.compatibility }}
+          args: --release
 
       - name: Build wheel
         if: ${{ !startsWith(matrix.name, 'linux-') }}
@@ -102,30 +99,37 @@ jobs:
             runner: ubuntu-latest
             libc: gnu
             musl_image: ''
+            target: x86_64-unknown-linux-gnu
           - platform: linux-x86_64-musl
             runner: ubuntu-latest
             libc: musl
             musl_image: quay.io/pypa/musllinux_1_2_x86_64
+            target: x86_64-unknown-linux-musl
           - platform: linux-aarch64-gnu
             runner: ubuntu-24.04-arm
             libc: gnu
             musl_image: ''
+            target: aarch64-unknown-linux-gnu
           - platform: linux-aarch64-musl
             runner: ubuntu-24.04-arm
             libc: musl
             musl_image: quay.io/pypa/musllinux_1_2_aarch64
+            target: aarch64-unknown-linux-musl
           - platform: macos-x86_64
             runner: macos-15-intel
             libc: native
             musl_image: ''
+            target: x86_64-apple-darwin
           - platform: macos-aarch64
             runner: macos-latest
             libc: native
             musl_image: ''
+            target: aarch64-apple-darwin
           - platform: windows-x86_64
             runner: windows-latest
             libc: native
             musl_image: ''
+            target: x86_64-pc-windows-msvc
 
     steps:
       - name: Checkout
@@ -157,8 +161,15 @@ jobs:
             -v ${{ github.workspace }}:/io \
             -e HOME=/root \
             -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
+            -e RUST_TARGET=${{ matrix.target }} \
             -w /io ${{ matrix.musl_image }} \
             sh -c '
+              apk add --no-cache curl build-base && \
+              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
+              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
+              source "$CARGO_HOME/env" && \
+              rustup target add $RUST_TARGET && \
+              cargo test --target $RUST_TARGET --lib --tests --bins && \
               TAG=${PYTHON_VERSION//./} && \
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
               $PY_BIN -m pip install --upgrade pip pytest && \
