@@ -22,6 +22,8 @@ Example:
 
 from __future__ import annotations
 
+from typing import Optional
+
 class MainInterface:
     """Access DllMain settings, messages, and key modes."""
 
@@ -40,7 +42,7 @@ class MainInterface:
     TIME_IS_TAI: int
     TIME_IS_UTC: int
 
-    def __init__(self, file_name: str | None = None) -> None:
+    def __init__(self, file_name: Optional[str] = None) -> None:
         """Create an interface and optionally load an input file."""
         ...
 
@@ -228,7 +230,7 @@ class EnvironmentInterface:
     XF_FKMOD_4: int
     XF_FKMOD_5: int
 
-    def __init__(self, file_name: str | None = None) -> None:
+    def __init__(self, file_name: Optional[str] = None) -> None:
         """Create an interface and optionally load an input file."""
         ...
 
@@ -485,7 +487,7 @@ class TimeInterface:
     ds50 values are days since 1950-01-01 00:00:00 in the given time scale.
     """
 
-    def __init__(self, file_name: str | None = None) -> None:
+    def __init__(self, file_name: Optional[str] = None) -> None:
         """Create an interface and optionally load time constants."""
         ...
 
@@ -734,14 +736,14 @@ class SGP4Interface:
         self,
         epoch: float,
         posvel: list[float],
-        ballistic_coefficient: float | None,
-        srp_coefficient: float | None,
+        ballistic_coefficient: Optional[float],
+        srp_coefficient: Optional[float],
     ) -> list[float]: ...
     def fit_sgp4_array(
         self,
         epoch: float,
         posvel: list[float],
-        b_star: float | None,
+        b_star: Optional[float],
     ) -> list[float]: ...
     def get_positions_velocities(self, sat_keys: list[int], ds50_utc: float) -> list[float]: ...
     def set_license_directory(self, lic_file_path: str) -> None: ...
@@ -757,22 +759,22 @@ class ParsedB3:
     norad_id: int
     sensor_number: int
     epoch: float
-    elevation: float | None
-    declination: float | None
-    azimuth: float | None
-    right_ascension: float | None
-    range: float | None
-    range_rate: float | None
-    year_of_equinox: int | None
-    elevation_rate: float | None
-    azimuth_rate: float | None
-    range_acceleration: float | None
+    elevation: Optional[float]
+    declination: Optional[float]
+    azimuth: Optional[float]
+    right_ascension: Optional[float]
+    range: Optional[float]
+    range_rate: Optional[float]
+    year_of_equinox: Optional[int]
+    elevation_rate: Optional[float]
+    azimuth_rate: Optional[float]
+    range_acceleration: Optional[float]
     observation_type: int
     track_position: int
     association_status: int
     site_tag: int
     spadoc_tag: int
-    position: list[float] | None
+    position: Optional[list[float]]
 
     def get_line(self) -> str: ...
 
@@ -803,23 +805,23 @@ class ParsedSensor:
 
     key: int
     number: int
-    minimum_range: float | None
-    maximum_range: float | None
-    range_rate_limit: float | None
+    minimum_range: Optional[float]
+    maximum_range: Optional[float]
+    range_rate_limit: Optional[float]
     apply_range_limits: bool
     mobile: bool
-    latitude: float | None
-    longitude: float | None
-    altitude: float | None
+    latitude: Optional[float]
+    longitude: Optional[float]
+    altitude: Optional[float]
     astronomical_latitude: float
     astronomical_longitude: float
-    azimuth_noise: float | None
-    elevation_noise: float | None
-    range_noise: float | None
-    range_rate_noise: float | None
-    azimuth_rate_noise: float | None
-    elevation_rate_noise: float | None
-    description: str | None
+    azimuth_noise: Optional[float]
+    elevation_noise: Optional[float]
+    range_noise: Optional[float]
+    range_rate_noise: Optional[float]
+    azimuth_rate_noise: Optional[float]
+    elevation_rate_noise: Optional[float]
+    description: Optional[str]
 
 class SensorInterface:
     """Access sensor parsing and storage helpers."""
@@ -841,7 +843,7 @@ class SensorInterface:
     def parse_all(self) -> list[ParsedSensor]: ...
     def prune_missing_locations(self) -> None: ...
     def get_astronomical_ll(self, sen_key: int) -> list[float]: ...
-    def get_lla(self, sen_key: int) -> list[float] | None: ...
+    def get_lla(self, sen_key: int) -> Optional[list[float]]: ...
     def get_keys(self, order: int) -> list[int]: ...
     def load_card(self, card: str) -> None: ...
     def remove(self, sen_key: int) -> None: ...
@@ -866,13 +868,13 @@ class ParsedTLE:
     ephemeris_type: int
     element_set_number: int
     revolution_number: int
-    designator: str | None
+    designator: Optional[str]
     classification: str
-    mean_motion_1st_derivative: float | None
-    mean_motion_2nd_derivative: float | None
-    b_star: float | None
-    ballistic_coefficient: float | None
-    srp_coefficient: float | None
+    mean_motion_1st_derivative: Optional[float]
+    mean_motion_2nd_derivative: Optional[float]
+    b_star: Optional[float]
+    ballistic_coefficient: Optional[float]
+    srp_coefficient: Optional[float]
 
     def get_lines(self, remove_nulls: bool = False) -> tuple[str, str]: ...
 

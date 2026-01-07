@@ -37,7 +37,7 @@ crate-type = ["cdylib", "rlib"]
 name = "saal"
 
 [features]
-python = ["pyo3/extension-module", "pyo3/abi3-py310"]
+python = ["pyo3/extension-module", "pyo3/abi3-py39"]
 
 [dev-dependencies]
 approx = "0.5.1"
