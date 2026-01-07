@@ -461,87 +461,87 @@ pub fn get_geopotential_model() -> Result<i32, String> {
 mod tests {
     use super::*;
     use crate::DLL_VERSION;
-    use crate::test_lock::lock;
+    use crate::test_lock::TEST_LOCK;
     #[test]
     fn test_get_dll_info() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let info = get_dll_info();
         assert!(info.contains(DLL_VERSION));
     }
 
     #[test]
     fn test_get_earth_radius() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let radius = get_earth_radius();
         assert!(radius == 6378.135);
     }
 
     #[test]
     fn test_get_fundamental_catalog() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let catalog = get_fundamental_catalog().unwrap();
         assert!(catalog == 5);
     }
 
     #[test]
     fn test_get_j2() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let j2 = get_j2();
         assert_eq!(j2, 0.001082616);
     }
 
     #[test]
     fn test_get_j3() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let j3 = get_j3();
         assert_eq!(j3, -0.00000253881);
     }
 
     #[test]
     fn test_get_j4() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let j4 = get_j4();
         assert_eq!(j4, -0.00000165597);
     }
 
     #[test]
     fn test_get_j5() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let j5 = get_j5();
         assert_eq!(j5, -2.184827e-7);
     }
 
     #[test]
     fn test_get_earth_mu() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let mu = get_earth_mu();
         assert_eq!(mu, 398600.8);
     }
 
     #[test]
     fn test_get_earth_flattening() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let ff = get_earth_flattening();
         assert_eq!(ff, 1.0 / 298.26);
     }
 
     #[test]
     fn test_get_earth_rotation_rate() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let rate = get_earth_rotation_rate();
         assert_eq!(rate, 0.017202791694070362);
     }
 
     #[test]
     fn test_get_earth_rotation_acceleration() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let accel = get_earth_rotation_acceleration();
         assert_eq!(accel, 5.075514194322695e-15);
     }
 
     #[test]
     fn test_set_fundamental_catalog_four() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         set_fundamental_catalog(4);
         let catalog = get_fundamental_catalog().unwrap();
         assert_eq!(catalog, 4);
@@ -550,7 +550,7 @@ mod tests {
 
     #[test]
     fn test_load_from_file_missing() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let path = std::env::temp_dir().join("saal_missing_env.txt");
         let _ = std::fs::remove_file(&path);
         let result = load_from_file(path.to_str().unwrap());

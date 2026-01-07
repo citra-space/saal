@@ -420,7 +420,7 @@ mod tests {
     use approx::assert_abs_diff_eq;
 
     use super::*;
-    use crate::test_lock::lock;
+    use crate::test_lock::TEST_LOCK;
 
     const TARGET_TEME_X: f64 = 42164.0;
     const TARGET_TEME_Y: f64 = 0.0;
@@ -437,7 +437,7 @@ mod tests {
 
     #[test]
     fn test_get_relative_state() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let target_posvel = [
             TARGET_TEME_X,
             TARGET_TEME_Y,

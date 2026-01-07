@@ -1119,7 +1119,7 @@ mod tests {
     use approx::assert_abs_diff_eq;
 
     use super::*;
-    use crate::test_lock::lock;
+    use crate::test_lock::TEST_LOCK;
     use crate::{DLL_VERSION, IDX_ORDER_DES, IDX_ORDER_READ};
 
     const SGP_LINE_1: &str = "1 11111U 98067A   25363.54791667 +.00012345  10000-1  20000-1 0 0900";
@@ -1174,7 +1174,7 @@ mod tests {
 
     #[test]
     fn test_get_lines() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let sgp_key = load_lines(SGP_LINE_1, SGP_LINE_2);
         let sgp4_key = load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let xp_key = load_lines(XP_LINE_1, XP_LINE_2);
@@ -1197,7 +1197,7 @@ mod tests {
 
     #[test]
     fn test_get_arrays() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let sgp_key = load_lines(SGP_LINE_1, SGP_LINE_2);
         let sgp4_key = load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let xp_key = load_lines(XP_LINE_1, XP_LINE_2);
@@ -1223,7 +1223,7 @@ mod tests {
 
     #[test]
     fn test_get_keys() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let sgp4_key = load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let sgp_key = load_lines(SGP_LINE_1, SGP_LINE_2);
         let xp_key = load_lines(XP_LINE_1, XP_LINE_2);
@@ -1242,7 +1242,7 @@ mod tests {
 
     #[test]
     fn test_remove_nulls() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let (line_1, _line_2) = lines_to_arrays(NULL_LINE_1, SGP_LINE_2)
             .map(|(xa_tle, xs_tle)| ParsedTLE::from((xa_tle, xs_tle)))
             .and_then(|parsed_tle| parsed_tle.get_lines(true))
@@ -1252,7 +1252,7 @@ mod tests {
 
     #[test]
     fn test_parsed_tles_to_lines() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         // SGP
         let mut parsed_sgp = ParsedTLE {
             norad_id: SGP_NORAD_ID as i32,
@@ -1367,7 +1367,7 @@ mod tests {
 
     #[test]
     fn test_arrays_to_parsed_tles() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let (xa_sgp, xs_sgp) = lines_to_arrays(SGP_LINE_1, SGP_LINE_2).unwrap();
         let (xa_sgp4, xs_sgp4) = lines_to_arrays(SGP4_LINE_1, SGP4_LINE_2).unwrap();
         let (xa_xp, xs_xp) = lines_to_arrays(XP_LINE_1, XP_LINE_2).unwrap();
@@ -1480,7 +1480,7 @@ mod tests {
 
     #[test]
     fn test_arrays_to_lines() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let (xa_sgp, xs_sgp) = lines_to_arrays(SGP_LINE_1, SGP_LINE_2).unwrap();
         let (xa_sgp4, xs_sgp4) = lines_to_arrays(SGP4_LINE_1, SGP4_LINE_2).unwrap();
         let (xa_xp, xs_xp) = lines_to_arrays(XP_LINE_1, XP_LINE_2).unwrap();
@@ -1509,7 +1509,7 @@ mod tests {
 
     #[test]
     fn test_lines_to_arrays() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let (xa_sgp, xs_sgp) = lines_to_arrays(SGP_LINE_1, SGP_LINE_2).unwrap();
         let (xa_sgp4, xs_sgp4) = lines_to_arrays(SGP4_LINE_1, SGP4_LINE_2).unwrap();
         let (xa_xp, xs_xp) = lines_to_arrays(XP_LINE_1, XP_LINE_2).unwrap();
@@ -1581,7 +1581,7 @@ mod tests {
 
     #[test]
     fn test_load_lines() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
 
         let sgp_key = load_lines(SGP_LINE_1, SGP_LINE_2);
         let sgp4_key = load_lines(SGP4_LINE_1, SGP4_LINE_2);
@@ -1604,7 +1604,7 @@ mod tests {
 
     #[test]
     fn test_tle_file() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let result = load_file("tests/data/2025-12-30-celestrak.tle");
         let count = get_count();
         let _ = clear();
@@ -1614,7 +1614,7 @@ mod tests {
 
     #[test]
     fn test_load_3le_file() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let result = load_file("tests/data/2025-12-30-celestrak.3le");
         let count = get_count();
         let _ = clear();

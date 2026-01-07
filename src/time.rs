@@ -556,40 +556,40 @@ pub fn constants_loaded() -> bool {
 mod tests {
     use super::*;
     use crate::DLL_VERSION;
-    use crate::test_lock::lock;
+    use crate::test_lock::TEST_LOCK;
     use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_get_dll_info() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let info = get_dll_info();
         assert!(info.contains(DLL_VERSION));
     }
 
     #[test]
     fn test_ymd_components_to_ds50() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let ds50 = ymd_components_to_ds50(1956, 1, 1, 0, 0, 0.0);
         assert_eq!(ds50, 2192.0);
     }
 
     #[test]
     fn test_ds50_to_ymd_components() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let (year, month, day, hour, minute, second) = ds50_to_ymd_components(2192.0);
         assert_eq!((year, month, day, hour, minute, second), (1956, 1, 1, 0, 0, 0.0));
     }
 
     #[test]
     fn test_dtg_to_ds50() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let ds50 = dtg_to_ds50("1956/001 0000 00.000");
         assert_eq!(ds50, 2192.0);
     }
 
     #[test]
     fn test_ds50_to_dtg_formats() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         assert_eq!(ds50_to_dtg20(2192.0), "1956/001 0000 00.000");
         assert_eq!(ds50_to_dtg19(2192.0), "1956Jan01000000.000");
         assert_eq!(ds50_to_dtg17(2192.0), "1956/001.00000000");
@@ -598,7 +598,7 @@ mod tests {
 
     #[test]
     fn test_year_doy_conversions() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let ds50 = year_doy_to_ds50(1956, 1.0);
         assert_eq!(ds50, 2192.0);
         let (year, doy) = ds50_to_year_doy(2192.0);
@@ -607,13 +607,13 @@ mod tests {
 
     #[test]
     fn test_constants_loaded() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         assert!(constants_loaded());
     }
 
     #[test]
     fn test_conversions() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let utc = ymd_components_to_ds50(1973, 1, 30, 0, 0, 0.0);
         let tai = 8431.000138888889;
         let ut1 = 8431.00000830081;
@@ -628,7 +628,7 @@ mod tests {
 
     #[test]
     fn test_greenwich_angles() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let utc = ymd_components_to_ds50(1973, 1, 2, 0, 0, 0.0);
         let ut1 = utc_to_ut1(utc);
         let fk4 = get_fk4_greenwich_angle(ut1);

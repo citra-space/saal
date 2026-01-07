@@ -16,6 +16,7 @@ pub(crate) mod test_lock;
 pub mod time;
 pub mod tle;
 
+use ctor::ctor;
 pub use get_set_string::GetSetString;
 #[cfg(feature = "python")]
 use pyo3::exceptions::PyRuntimeError;
@@ -23,9 +24,6 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::os::raw::c_char;
 use std::path::PathBuf;
-use std::sync::Once;
-
-static INIT: Once = Once::new();
 
 unsafe extern "C" {
     //  Returns information about the DllMain DLL.
@@ -377,13 +375,11 @@ pub fn get_duplicate_key_mode() -> Result<i32, String> {
     }
 }
 
-/// Initializes the library.
-/// This must be called before using any other functions if using from Rust.
-/// When using from Python, this is called automatically on import.
-pub fn initialize() -> Result<(), String> {
-    set_key_mode(ALL_KEYMODE_DMA)?;
+#[ctor]
+fn initialize() {
+    set_key_mode(ALL_KEYMODE_DMA).unwrap();
     if let Some(path) = get_time_constants_path() {
-        time::load_constants(path.to_str().unwrap())?;
+        time::load_constants(path.to_str().unwrap()).unwrap();
     }
     if let Some(path) = get_jpl_file_path() {
         astro::set_jpl_ephemeris_file_path(path.to_str().unwrap());
@@ -391,7 +387,6 @@ pub fn initialize() -> Result<(), String> {
     if let Some(asset_dir) = get_asset_directory() {
         sgp4::set_license_directory(asset_dir.to_str().unwrap());
     }
-    Ok(())
 }
 
 fn asset_directory_override() -> Option<PathBuf> {
@@ -453,25 +448,25 @@ fn get_jpl_file_path() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_lock::lock;
+    use crate::test_lock::TEST_LOCK;
 
     #[test]
     fn test_get_dll_info_contains_version() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let info = get_dll_info();
         assert!(info.contains(DLL_VERSION));
     }
 
     #[test]
     fn test_get_key_mode_default() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let mode = get_key_mode().unwrap() as i32;
         assert_eq!(mode, 1);
     }
 
     #[test]
     fn test_set_duplicate_key_mode_return_key() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         set_duplicate_key_mode(DUPKEY_ACTUAL).unwrap();
         let mode = get_duplicate_key_mode().unwrap();
         assert_eq!(mode, DUPKEY_ACTUAL);
@@ -479,7 +474,7 @@ mod tests {
 
     #[test]
     fn test_get_duplicate_key_mode_return_zero() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         set_duplicate_key_mode(DUPKEY_ZERO).unwrap();
         let mode = get_duplicate_key_mode().unwrap();
         assert_eq!(mode, DUPKEY_ZERO);
@@ -487,7 +482,7 @@ mod tests {
 
     #[test]
     fn test_load_from_file_missing() {
-        let _lock = lock();
+        let _lock = TEST_LOCK.lock().unwrap();
         let path = std::env::temp_dir().join("saal_missing_input.txt");
         let _ = std::fs::remove_file(&path);
         let result = load_from_file(path.to_str().unwrap());
@@ -498,7 +493,6 @@ mod tests {
 #[cfg(feature = "python")]
 #[pymodule]
 fn _pysaal(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
-    initialize().map_err(PyRuntimeError::new_err)?;
     bindings::register_bindings(parent_module)?;
     Ok(())
 }
