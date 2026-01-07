@@ -73,7 +73,7 @@ jobs:
             -e RUST_TARGET=${{ matrix.target }} \
             -w /io quay.io/pypa/musllinux_1_2_aarch64 \
             sh -c '
-              apk add --no-cache curl build-base bzip2-dev && \
+              apk add --no-cache curl build-base && \
               export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
               curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
               source "$CARGO_HOME/env" && \
