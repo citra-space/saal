@@ -10,174 +10,158 @@ env:
   PYTHON_VERSION: '3.10'
 
 jobs:
-  test-windows:
-    runs-on: windows-latest
+  build-wheels:
+    name: build-${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64-gnu
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            manylinux: 2_24
+            compatibility: manylinux_2_24
+          - name: linux-x86_64-musl
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            manylinux: musllinux_1_2
+            compatibility: musllinux_1_2
+          - name: linux-aarch64-gnu
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            manylinux: 2_24
+            compatibility: manylinux_2_24
+          - name: linux-aarch64-musl
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            manylinux: musllinux_1_2
+            compatibility: musllinux_1_2
+          - name: macos-x86_64
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: macos-aarch64
+            runner: macos-latest
+            target: aarch64-apple-darwin
+          - name: windows-x86_64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Test Rust
+        run: cargo test --target ${{ matrix.target }} --lib --tests --bins
+
+      - name: Build wheel (linux)
+        if: startsWith(matrix.name, 'linux-')
+        uses: PyO3/maturin-action@v1
         with:
-          toolchain: stable
-          override: true
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --compatibility ${{ matrix.compatibility }}
 
-      - name: Install dependencies
+      - name: Build wheel
+        if: ${{ !startsWith(matrix.name, 'linux-') }}
         run: |
-          cargo install --locked cargo-make
-          python -m pip install --upgrade pip maturin pytest
-
-      - name: Test build
-        run: cargo make test-windows
+          python -m pip install --upgrade pip maturin
+          maturin build --release --target ${{ matrix.target }}
 
       - name: Upload wheel
         uses: actions/upload-artifact@v4
         with:
-          name: windows-whl
+          name: wheels-${{ matrix.name }}
           path: target/wheels/*.whl
 
-  test-linux-x86:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  test-python:
+    name: test-${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    needs: build-wheels
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64-gnu
+            runner: ubuntu-latest
+            libc: gnu
+            musl_image: ''
+          - platform: linux-x86_64-musl
+            runner: ubuntu-latest
+            libc: musl
+            musl_image: quay.io/pypa/musllinux_1_2_x86_64
+          - platform: linux-aarch64-gnu
+            runner: ubuntu-24.04-arm
+            libc: gnu
+            musl_image: ''
+          - platform: linux-aarch64-musl
+            runner: ubuntu-24.04-arm
+            libc: musl
+            musl_image: quay.io/pypa/musllinux_1_2_aarch64
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            libc: native
+            musl_image: ''
+          - platform: macos-aarch64
+            runner: macos-latest
+            libc: native
+            musl_image: ''
+          - platform: windows-x86_64
+            runner: windows-latest
+            libc: native
+            musl_image: ''
 
-      - name: Build wheel
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        if: ${{ matrix.libc != 'musl' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform }}
+          path: dist
+
+      - name: Install and test
+        if: ${{ matrix.libc != 'musl' }}
+        run: |
+          python -m pip install --upgrade pip pytest
+          python -m pip install dist/*.whl
+          python -m pytest
+
+      - name: Install and test (musl)
+        if: ${{ matrix.libc == 'musl' }}
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/io \
             -e HOME=/root \
             -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
-            -w /io quay.io/pypa/manylinux2014_x86_64 \
-            bash -c '
-              yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
-              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
-              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
-              source "$CARGO_HOME/env" && \
-              cargo install --locked maturin && \
+            -w /io ${{ matrix.musl_image }} \
+            sh -c '
               TAG=${PYTHON_VERSION//./} && \
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
-              $PY_BIN -m pip install --upgrade pip setuptools wheel auditwheel && \
-              maturin build --release --compatibility manylinux2014 -i $PY_BIN
+              $PY_BIN -m pip install --upgrade pip pytest && \
+              $PY_BIN -m pip install dist/*.whl && \
+              $PY_BIN -m pytest
             '
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install and test
-        run: |
-          python -m pip install --upgrade pip pytest
-          python -m pip install target/wheels/*.whl
-          python -m pytest
-
-      - name: Upload wheel
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-x86-whl
-          path: target/wheels/*.whl
-
-  test-linux-arm:
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build wheel
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/io \
-            -e HOME=/root \
-            -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
-            -w /io quay.io/pypa/manylinux2014_aarch64 \
-            bash -c '
-              yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
-              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
-              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
-              source "$CARGO_HOME/env" && \
-              cargo install --locked maturin && \
-              TAG=${PYTHON_VERSION//./} && \
-              PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
-              $PY_BIN -m pip install --upgrade pip setuptools wheel auditwheel && \
-              maturin build --release --compatibility manylinux2014 -i $PY_BIN
-            '
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install and test
-        run: |
-          python -m pip install --upgrade pip pytest
-          python -m pip install target/wheels/*.whl
-          python -m pytest
-
-      - name: Upload wheel
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-arm-whl
-          path: target/wheels/*.whl
-
-  test-macos-arm:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install dependencies
-        run: |
-          cargo install --locked cargo-make
-          python -m pip install --upgrade pip maturin pytest
-
-      - name: Test build
-        run: cargo make test-mac-arm
-
-      - name: Upload wheel
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-arm-whl
-          path: target/wheels/*.whl
-
-  test-macos-x86:
-    runs-on: macos-15-intel
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install dependencies
-        run: |
-          cargo install --locked cargo-make
-          python -m pip install --upgrade pip maturin pytest
-
-      - name: Test build
-        run: cargo make test-mac-x86
-
-      - name: Upload wheel
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-x86-whl
-          path: target/wheels/*.whl

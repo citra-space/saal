@@ -9,10 +9,48 @@ env:
   PYTHON_VERSION: '3.10'
 
 jobs:
-  build-linux-x86:
-    runs-on: ubuntu-latest
+  build-wheels:
+    name: Build wheels (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64-gnu
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            manylinux: 2_24
+            compatibility: manylinux_2_24
+          - name: linux-x86_64-musl
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            manylinux: musllinux_1_2
+            compatibility: musllinux_1_2
+          - name: linux-aarch64-gnu
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            manylinux: 2_24
+            compatibility: manylinux_2_24
+          - name: linux-aarch64-musl
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            manylinux: musllinux_1_2
+            compatibility: musllinux_1_2
+          - name: macos-x86_64
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: macos-aarch64
+            runner: macos-latest
+            target: aarch64-apple-darwin
+          - name: windows-x86_64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,197 +64,34 @@ jobs:
           fi
           echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
 
-      - name: Build wheel
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/io \
-            -e HOME=/root \
-            -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
-            -w /io quay.io/pypa/manylinux2014_x86_64 \
-            bash -c '
-              yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
-              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
-              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
-              source "$CARGO_HOME/env" && \
-              cargo install --locked maturin && \
-              TAG=${PYTHON_VERSION//./} && \
-              PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
-              $PY_BIN -m pip install --upgrade pip setuptools wheel auditwheel && \
-              maturin build --release --compatibility manylinux2014 -i $PY_BIN
-            '
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          name: pypi-linux-x86_64
-          path: target/wheels/*.whl
-
-  build-linux-arm:
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Validate tag
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag $tag does not match v.x.y.z"
-            exit 1
-          fi
-          echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
-
-      - name: Build wheel
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/io \
-            -e HOME=/root \
-            -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
-            -w /io quay.io/pypa/manylinux2014_aarch64 \
-            bash -c '
-              yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
-              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
-              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
-              source "$CARGO_HOME/env" && \
-              cargo install --locked maturin && \
-              TAG=${PYTHON_VERSION//./} && \
-              PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
-              $PY_BIN -m pip install --upgrade pip setuptools wheel auditwheel && \
-              maturin build --release --compatibility manylinux2014 -i $PY_BIN
-            '
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: pypi-linux-aarch64
-          path: target/wheels/*.whl
-
-  build-macos-arm:
-    runs-on: macos-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Validate tag
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag $tag does not match v.x.y.z"
-            exit 1
-          fi
-          echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
+          targets: ${{ matrix.target }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Build wheel (linux)
+        if: ${{ startsWith(matrix.name, 'linux-') }}
+        uses: PyO3/maturin-action@v1
         with:
-          toolchain: stable
-          override: true
-
-      - name: Install dependencies
-        run: |
-          cargo install --locked cargo-make
-          python -m pip install --upgrade pip maturin
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --compatibility ${{ matrix.compatibility }}
 
       - name: Build wheel
-        run: cargo make build-mac-arm
+        if: ${{ !startsWith(matrix.name, 'linux-') }}
+        run: |
+          python -m pip install --upgrade pip maturin
+          maturin build --release --target ${{ matrix.target }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: pypi-macos-aarch64
-          path: target/wheels/*.whl
-
-  build-macos-x86:
-    runs-on: macos-15-intel
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Validate tag
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag $tag does not match v.x.y.z"
-            exit 1
-          fi
-          echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install dependencies
-        run: |
-          cargo install --locked cargo-make
-          python -m pip install --upgrade pip maturin
-
-      - name: Build wheel
-        run: cargo make build-mac-x86
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: pypi-macos-x86_64
-          path: target/wheels/*.whl
-
-  build-windows:
-    runs-on: windows-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Validate tag
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          if (!($tag -match '^v[0-9]+\.[0-9]+\.[0-9]+$')) {
-            Write-Error "Tag $tag does not match v.x.y.z"
-            exit 1
-          }
-          "VERSION=$($tag.Substring(1))" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install dependencies
-        run: |
-          cargo install --locked cargo-make
-          python -m pip install --upgrade pip maturin
-
-      - name: Build wheel
-        run: cargo make build-windows
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: pypi-windows-x86_64
+          name: pypi-${{ matrix.name }}
           path: target/wheels/*.whl
 
   build-sdist:
@@ -263,11 +138,7 @@ jobs:
     name: Publish to PyPI
     runs-on: ubuntu-latest
     needs:
-      - build-linux-x86
-      - build-linux-arm
-      - build-macos-arm
-      - build-macos-x86
-      - build-windows
+      - build-wheels
       - build-sdist
     permissions:
       contents: read
@@ -315,11 +186,7 @@ jobs:
     name: Create GitHub release
     runs-on: ubuntu-latest
     needs:
-      - build-linux-x86
-      - build-linux-arm
-      - build-macos-arm
-      - build-macos-x86
-      - build-windows
+      - build-wheels
       - build-sdist
     permissions:
       contents: write
