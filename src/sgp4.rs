@@ -553,7 +553,7 @@ pub fn reepoch_tle(sat_key: i64, re_epoch_ds50_utc: f64) -> Result<(String, Stri
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_lock::TEST_LOCK;
+    use crate::test_lock::lock;
     use crate::{DLL_VERSION, tle};
     use approx::assert_abs_diff_eq;
 
@@ -615,7 +615,7 @@ mod tests {
 
     #[test]
     fn test_ephemeris_generation() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let sgp4_key = tle::load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let xp_key = tle::load_lines(XP_LINE_1, XP_LINE_2);
         let start = EPOCH - 1.0;
@@ -653,7 +653,7 @@ mod tests {
 
     #[test]
     fn test_fit_arrays() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let sgp4_posvel = [SGP4_X, SGP4_Y, SGP4_Z, SGP4_VX, SGP4_VY, SGP4_VZ];
         let xp_posvel = [XP_X, XP_Y, XP_Z, XP_VX, XP_VY, XP_VZ];
 
@@ -675,7 +675,7 @@ mod tests {
 
     #[test]
     fn test_prop_all_sats() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let sgp4_key = tle::load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let xp_key = tle::load_lines(XP_LINE_1, XP_LINE_2);
         load(sgp4_key).unwrap();
@@ -700,7 +700,7 @@ mod tests {
 
     #[test]
     fn test_get_all_at_ds50() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let sgp4_key = tle::load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let xp_key = tle::load_lines(XP_LINE_1, XP_LINE_2);
         load(sgp4_key).unwrap();
@@ -742,7 +742,7 @@ mod tests {
 
     #[test]
     fn test_get_pos_at_ds50() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let sgp4_key = tle::load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let xp_key = tle::load_lines(XP_LINE_1, XP_LINE_2);
 
@@ -765,7 +765,7 @@ mod tests {
 
     #[test]
     fn test_get_posvel_at_ds50() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let sgp4_key = tle::load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let xp_key = tle::load_lines(XP_LINE_1, XP_LINE_2);
 
@@ -794,7 +794,7 @@ mod tests {
 
     #[test]
     fn test_get_llh_at_ds50() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let sgp4_key = tle::load_lines(SGP4_LINE_1, SGP4_LINE_2);
         let xp_key = tle::load_lines(XP_LINE_1, XP_LINE_2);
 
@@ -817,7 +817,7 @@ mod tests {
 
     #[test]
     fn test_get_dll_info_contains_version() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let info = get_dll_info();
         assert!(info.contains(DLL_VERSION));
     }

@@ -903,20 +903,20 @@ pub fn get_earth_obstruction_angles(sat_teme_pos: &[f64; 3], sensor_teme_pos: &[
 mod tests {
     use super::*;
     use crate::environment::{XF_GEOMOD_WGS72, XF_GEOMOD_WGS84};
-    use crate::test_lock::TEST_LOCK;
+    use crate::test_lock::lock;
     use crate::{DLL_VERSION, environment};
     use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_get_dll_info_contains_version() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let info = get_dll_info();
         assert!(info.contains(DLL_VERSION));
     }
 
     #[test]
     fn test_keplerian_to_equinoctial() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let kep = [26558.482, 0.006257, 54.935, 234.764, 165.472, 217.612];
         let eqnx = keplerian_to_equinoctial(&kep);
 
@@ -930,7 +930,7 @@ mod tests {
 
     #[test]
     fn test_equinoctial_to_keplerian() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let eqnx = [
             0.005756008409,
             0.002453246053,
@@ -951,7 +951,7 @@ mod tests {
 
     #[test]
     fn test_keplerian_to_cartesian() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let kep = [26558.482, 0.006257, 54.935, 234.764, 165.472, 217.612];
         let posvel = keplerian_to_cartesian(&kep);
 
@@ -965,7 +965,7 @@ mod tests {
 
     #[test]
     fn test_cartesian_to_keplerian() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let posvel = [
             -3032.21272487,
             -15025.7763831,
@@ -986,7 +986,7 @@ mod tests {
 
     #[test]
     fn test_mean_motion_conversions() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let mean_motion = 1.0027382962;
         let semi_major_axis = mean_motion_to_sma(mean_motion);
         assert_abs_diff_eq!(semi_major_axis, 42164.171420, epsilon = 1.0e-6);
@@ -997,7 +997,7 @@ mod tests {
 
     #[test]
     fn test_kozai_brouwer_conversions() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let kozai = 14.2024103100000;
         let brouwer = 14.2107268431215;
         let ecc = 1.1127E-002;
@@ -1012,7 +1012,7 @@ mod tests {
 
     #[test]
     fn test_osculating_to_mean() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         let osc = [7200.0, 0.006257, 54.935, 234.764, 165.472, 217.612];
         let mean = osculating_to_mean(&osc);
 
@@ -1026,7 +1026,7 @@ mod tests {
 
     #[test]
     fn test_gst_teme_to_lla() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         environment::set_geopotential_model(XF_GEOMOD_WGS84);
         let xyz = [6524.834, 6862.875, 6448.296];
         let llh = gst_teme_to_lla(0.0, &xyz);
@@ -1039,7 +1039,7 @@ mod tests {
 
     #[test]
     fn test_efg_to_lla() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
         environment::set_geopotential_model(XF_GEOMOD_WGS84);
         let efg = [6524.834, 6862.875, 6448.296];
         let llh = efg_to_lla(&efg).unwrap();

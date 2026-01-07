@@ -1327,7 +1327,7 @@ impl ParsedB3 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_lock::TEST_LOCK;
+    use crate::test_lock::lock;
     use approx::assert_abs_diff_eq;
 
     fn base_parsed_b3(equinox: f64) -> ParsedB3 {
@@ -1357,7 +1357,7 @@ mod tests {
 
     #[test]
     fn test_parsed_b3_get_line_year_of_equinox_indicator() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
 
         let cases = [
             (
@@ -1386,7 +1386,7 @@ mod tests {
 
     #[test]
     fn test_parsed_b3_from_line_matches_fields() {
-        let _lock = TEST_LOCK.lock().unwrap();
+        let _lock = lock();
 
         let b3_card = "U0001151013352142520112J85202 2220398         -01207880+03706326+05814970 9 4  10001100011";
         let parsed = ParsedB3::from_line(b3_card).unwrap();
