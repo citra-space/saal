@@ -11,7 +11,7 @@ def _set_asset_directory() -> None:
 
     asset_dir = os.getenv("SAAL_ASSET_DIRECTORY")
     if asset_dir is None:
-        pkg_dir = resources.files("pysaal") / "assets"
+        pkg_dir = resources.files("pysaal")
         _logger.debug("Setting SAAL_ASSET_DIRECTORY to %s", pkg_dir)
         os.environ.setdefault("SAAL_ASSET_DIRECTORY", str(pkg_dir))
     elif not os.path.exists(asset_dir):
