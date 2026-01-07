@@ -1,5 +1,6 @@
 /target
 truth/
+.github/workflows/*-reference.yml
 python/pysaal/*.txt
 python/pysaal/*.dat
 python/pysaal/*.dll
