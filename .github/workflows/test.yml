@@ -7,8 +7,8 @@ on:
     branches: ['main']
 
 jobs:
-  test:
-    name: ${{ matrix.name }}
+  build-wheels:
+    name: build-${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -47,20 +47,6 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Python deps
-        run: |
-          python -m venv .venv
-          PYTHON_BIN=".venv/bin/python"
-          if [ -f ".venv/Scripts/python.exe" ]; then
-            PYTHON_BIN=".venv/Scripts/python.exe"
-          fi
-          "$PYTHON_BIN" -m pip install --upgrade pip maturin pytest
-
       - name: Test Rust
         if: matrix.mode == 'native'
         run: cargo test --target ${{ matrix.target }} --lib --tests --bins
@@ -83,25 +69,141 @@ jobs:
               TAG=${PYTHON_VERSION//./}
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python
               "$PY_BIN" -m pip install --upgrade pip maturin
-              maturin build --release --compatibility manylinux2014 -i "$PY_BIN"
+              "$PY_BIN" -m maturin build --release --compatibility manylinux2014 -i "$PY_BIN"
             '
 
-      - name: Test Python (linux wheel)
-        if: matrix.mode == 'native' && startsWith(matrix.name, 'linux-')
-        run: |
-          PYTHON_BIN=".venv/bin/python"
-          if [ -f ".venv/Scripts/python.exe" ]; then
-            PYTHON_BIN=".venv/Scripts/python.exe"
-          fi
-          "$PYTHON_BIN" -m pip install target/wheels/*.whl
-          "$PYTHON_BIN" -m pytest
-
-      - name: Test Python (native)
+      - name: Build wheel
         if: matrix.mode == 'native' && !startsWith(matrix.name, 'linux-')
         run: |
-          PYTHON_BIN=".venv/bin/python"
-          if [ -f ".venv/Scripts/python.exe" ]; then
-            PYTHON_BIN=".venv/Scripts/python.exe"
-          fi
-          "$PYTHON_BIN" -m maturin develop --release --target ${{ matrix.target }}
-          "$PYTHON_BIN" -m pytest
+          python -m pip install --upgrade pip maturin
+          maturin build --release --target ${{ matrix.target }}
+
+      - name: Upload wheel
+        if: matrix.mode == 'native'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.name }}
+          path: target/wheels/*.whl
+
+  test-python:
+    name: test-${{ matrix.platform }}-py${{ matrix.python-version }}
+    runs-on: ${{ matrix.runner }}
+    needs: build-wheels
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+            python-version: '3.9'
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+            python-version: '3.10'
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+            python-version: '3.11'
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+            python-version: '3.12'
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+            python-version: '3.13'
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+            python-version: '3.14'
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            python-version: '3.9'
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            python-version: '3.10'
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            python-version: '3.11'
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            python-version: '3.12'
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            python-version: '3.13'
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            python-version: '3.14'
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            python-version: '3.9'
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            python-version: '3.10'
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            python-version: '3.11'
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            python-version: '3.12'
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            python-version: '3.13'
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            python-version: '3.14'
+          - platform: macos-aarch64
+            runner: macos-latest
+            python-version: '3.9'
+          - platform: macos-aarch64
+            runner: macos-latest
+            python-version: '3.10'
+          - platform: macos-aarch64
+            runner: macos-latest
+            python-version: '3.11'
+          - platform: macos-aarch64
+            runner: macos-latest
+            python-version: '3.12'
+          - platform: macos-aarch64
+            runner: macos-latest
+            python-version: '3.13'
+          - platform: macos-aarch64
+            runner: macos-latest
+            python-version: '3.14'
+          - platform: windows-x86_64
+            runner: windows-latest
+            python-version: '3.9'
+          - platform: windows-x86_64
+            runner: windows-latest
+            python-version: '3.10'
+          - platform: windows-x86_64
+            runner: windows-latest
+            python-version: '3.11'
+          - platform: windows-x86_64
+            runner: windows-latest
+            python-version: '3.12'
+          - platform: windows-x86_64
+            runner: windows-latest
+            python-version: '3.13'
+          - platform: windows-x86_64
+            runner: windows-latest
+            python-version: '3.14'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform }}
+          path: dist
+
+      - name: Install and test
+        run: |
+          python -m pip install --upgrade pip pytest
+          python -m pip install dist/*.whl
+          python -m pytest

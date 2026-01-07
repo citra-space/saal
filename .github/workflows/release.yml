@@ -83,7 +83,7 @@ jobs:
               TAG=${PYTHON_VERSION//./}
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python
               "$PY_BIN" -m pip install --upgrade pip maturin
-              maturin build --release --compatibility manylinux2014 -i "$PY_BIN"
+              "$PY_BIN" -m maturin build --release --compatibility manylinux2014 -i "$PY_BIN"
             '
 
       - name: Build wheel
