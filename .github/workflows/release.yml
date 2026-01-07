@@ -147,9 +147,9 @@ jobs:
           fi
           version="${tag#v}"
           py_version="$(awk -F' = ' '
-            $0=="[project]"{in=1;next}
-            /^\[/{if(in)exit}
-            in && $1=="version"{gsub(/"/,"",$2);print $2;exit}
+            $0=="[project]"{in_project=1;next}
+            /^\[/{if(in_project)exit}
+            in_project && $1=="version"{gsub(/"/,"",$2);print $2;exit}
           ' pyproject.toml)"
           if [ -z "$py_version" ]; then
             echo "version not found in pyproject.toml"
@@ -216,9 +216,9 @@ jobs:
           fi
           version="${tag#v}"
           cargo_version="$(awk -F' = ' '
-            $0=="[package]"{in=1;next}
-            /^\[/{if(in)exit}
-            in && $1=="version"{gsub(/"/,"",$2);print $2;exit}
+            $0=="[package]"{in_pkg=1;next}
+            /^\[/{if(in_pkg)exit}
+            in_pkg && $1=="version"{gsub(/"/,"",$2);print $2;exit}
           ' Cargo.toml)"
           if [ -z "$cargo_version" ]; then
             echo "version not found in Cargo.toml [package]"

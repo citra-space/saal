@@ -65,8 +65,26 @@ jobs:
         if: matrix.mode == 'native'
         run: cargo test --target ${{ matrix.target }} --lib --tests --bins
 
-      - name: Test Python
-        if: matrix.mode == 'native'
+      - name: Build wheel (linux manylinux)
+        if: matrix.mode == 'native' && startsWith(matrix.name, 'linux-')
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: 2014
+          args: --release
+
+      - name: Test Python (linux wheel)
+        if: matrix.mode == 'native' && startsWith(matrix.name, 'linux-')
+        run: |
+          PYTHON_BIN=".venv/bin/python"
+          if [ -f ".venv/Scripts/python.exe" ]; then
+            PYTHON_BIN=".venv/Scripts/python.exe"
+          fi
+          "$PYTHON_BIN" -m pip install target/wheels/*.whl
+          "$PYTHON_BIN" -m pytest
+
+      - name: Test Python (native)
+        if: matrix.mode == 'native' && !startsWith(matrix.name, 'linux-')
         run: |
           PYTHON_BIN=".venv/bin/python"
           if [ -f ".venv/Scripts/python.exe" ]; then
