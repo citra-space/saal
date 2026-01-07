@@ -16,12 +16,12 @@ pub(crate) mod test_lock;
 pub mod time;
 pub mod tle;
 
-use ctor::ctor;
 pub use get_set_string::GetSetString;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 use std::os::raw::c_char;
 use std::path::PathBuf;
+use std::sync::Once;
 
 unsafe extern "C" {
     //  Returns information about the DllMain DLL.
@@ -373,18 +373,21 @@ pub fn get_duplicate_key_mode() -> Result<i32, String> {
     }
 }
 
-#[ctor]
-fn initialize() {
-    set_key_mode(ALL_KEYMODE_DMA);
-    if let Some(path) = get_time_constants_path() {
-        let _ = time::load_constants(path.to_str().unwrap());
-    }
-    if let Some(path) = get_jpl_file_path() {
-        astro::set_jpl_ephemeris_file_path(path.to_str().unwrap());
-    }
-    if let Some(asset_dir) = get_asset_directory() {
-        sgp4::set_license_directory(asset_dir.to_str().unwrap());
-    }
+static INIT: Once = Once::new();
+
+pub fn initialize() {
+    INIT.call_once(|| {
+        let _ = set_key_mode(ALL_KEYMODE_DMA);
+        if let Some(path) = get_time_constants_path() {
+            let _ = time::load_constants(path.to_str().unwrap());
+        }
+        if let Some(path) = get_jpl_file_path() {
+            astro::set_jpl_ephemeris_file_path(path.to_str().unwrap());
+        }
+        if let Some(asset_dir) = get_asset_directory() {
+            sgp4::set_license_directory(asset_dir.to_str().unwrap());
+        }
+    });
 }
 
 fn asset_directory_override() -> Option<PathBuf> {
@@ -450,6 +453,7 @@ mod tests {
 
     #[test]
     fn test_get_dll_info_contains_version() {
+        initialize();
         let _lock = TEST_LOCK.lock().unwrap();
         let info = get_dll_info();
         assert!(info.contains(DLL_VERSION));
@@ -457,6 +461,7 @@ mod tests {
 
     #[test]
     fn test_get_key_mode_default() {
+        initialize();
         let _lock = TEST_LOCK.lock().unwrap();
         let mode = get_key_mode().unwrap() as i32;
         assert_eq!(mode, 1);
@@ -491,6 +496,7 @@ mod tests {
 #[cfg(feature = "python")]
 #[pymodule]
 fn _pysaal(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
+    initialize();
     bindings::register_bindings(parent_module)?;
     Ok(())
 }

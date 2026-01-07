@@ -7,6 +7,7 @@ python/pysaal/*.405
 python/pysaal/*.GEO
 python/pysaal/*.dylib
 python/pysaal/*.so
+python/pysaal/*.so.*
 python/pysaal/*.pyi
 python/pysaal/py.typed
 fort.*
