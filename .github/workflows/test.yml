@@ -24,12 +24,12 @@ jobs:
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             manylinux: 2_17
-            container: ''
+            container: quay.io/pypa/manylinux2014_x86_64
           - name: linux-aarch64-gnu
             runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            manylinux: 2_17
-            container: quay.io/pypa/manylinux_2_17_aarch64
+            manylinux: 2_31
+            container: quay.io/pypa/manylinux_2_31_aarch64
           - name: macos-x86_64
             runner: macos-15-intel
             target: x86_64-apple-darwin
