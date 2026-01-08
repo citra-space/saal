@@ -6,75 +6,45 @@ on:
       - 'v*.*.*'
 
 env:
-  PYTHON_VERSION: '3.10'
+  BUILD_PYTHON_VERSION: '3.10'
 
 jobs:
-  build-wheels:
-    name: Build wheels (${{ matrix.name }})
-    runs-on: ${{ matrix.runner }}
+  build-linux-x86:
+    runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      TARGET: x86_64-unknown-linux-gnu
+      MANYLINUX: 2_17
+      CONTAINER: quay.io/pypa/manylinux2014_x86_64
     defaults:
       run:
         shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: linux-x86_64-gnu
-            runner: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            manylinux: 2_17
-            container: quay.io/pypa/manylinux2014_x86_64
-          - name: linux-aarch64-gnu
-            runner: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            manylinux: 2_24
-            container: quay.io/pypa/manylinux_2_24_aarch64
-          - name: macos-x86_64
-            runner: macos-15-intel
-            target: x86_64-apple-darwin
-          - name: macos-aarch64
-            runner: macos-latest
-            target: aarch64-apple-darwin
-          - name: windows-x86_64
-            runner: windows-latest
-            target: x86_64-pc-windows-msvc
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate tag
+      - name: Build wheel (linux x86)
         run: |
-          tag="${GITHUB_REF_NAME}"
-          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag $tag does not match v.x.y.z"
-            exit 1
-          fi
-          echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Build wheel (linux)
-        if: ${{ startsWith(matrix.name, 'linux-') }}
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          manylinux: ${{ matrix.manylinux }}
-          container: ${{ matrix.container }}
-          args: --release
+          docker run --rm \
+            -v ${{ github.workspace }}:/io \
+            -e HOME=/root \
+            -w /io ${{ env.CONTAINER }} \
+            bash -lc '
+              yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
+              export CARGO_HOME="$HOME/.cargo" RUSTUP_HOME="$HOME/.rustup" && \
+              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
+              source "$CARGO_HOME/env" && \
+              PYTHON_VERSION=${{ env.BUILD_PYTHON_VERSION }} && \
+              TAG=${PYTHON_VERSION//./} && \
+              PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
+              PIP="${PY_BIN%/python}/pip" && \
+              $PIP install --upgrade pip setuptools wheel maturin && \
+              $PY_BIN -m maturin build --release --locked --compatibility manylinux_${{ env.MANYLINUX }} \
+                --target ${{ env.TARGET }} -i $PY_BIN
+            '
 
       - name: Check wheel glibc symbols (linux)
-        if: ${{ startsWith(matrix.name, 'linux-') }}
         run: |
           python - <<'PY'
           import glob
@@ -101,16 +71,165 @@ jobs:
           print("glibc symbol check passed")
           PY
 
-      - name: Build wheel
-        if: ${{ !startsWith(matrix.name, 'linux-') }}
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-linux-x86_64-gnu
+          path: target/wheels/*.whl
+
+  build-linux-arm:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    env:
+      TARGET: aarch64-unknown-linux-gnu
+      MANYLINUX: 2_24
+      CONTAINER: quay.io/pypa/manylinux_2_24_aarch64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build wheel (linux arm)
         run: |
-          python -m pip install --upgrade pip maturin
-          maturin build --release --target ${{ matrix.target }}
+          docker run --rm \
+            -v ${{ github.workspace }}:/io \
+            -e HOME=/root \
+            -w /io ${{ env.CONTAINER }} \
+            bash -lc '
+              yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
+              export CARGO_HOME="$HOME/.cargo" RUSTUP_HOME="$HOME/.rustup" && \
+              curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
+              source "$CARGO_HOME/env" && \
+              PYTHON_VERSION=${{ env.BUILD_PYTHON_VERSION }} && \
+              TAG=${PYTHON_VERSION//./} && \
+              PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
+              PIP="${PY_BIN%/python}/pip" && \
+              $PIP install --upgrade pip setuptools wheel maturin && \
+              $PY_BIN -m maturin build --release --locked --compatibility manylinux_${{ env.MANYLINUX }} \
+                --target ${{ env.TARGET }} -i $PY_BIN
+            '
+
+      - name: Check wheel glibc symbols (linux)
+        run: |
+          python - <<'PY'
+          import glob
+          import zipfile
+          import sys
+          needles = [b"GLIBC_2.29", b"__cxa_thread_atexit_impl"]
+          wheels = glob.glob("target/wheels/*.whl")
+          if not wheels:
+            print("No wheels found")
+            sys.exit(1)
+          bad = False
+          for wheel in wheels:
+            with zipfile.ZipFile(wheel) as zf:
+              for name in zf.namelist():
+                if not name.endswith(".so"):
+                  continue
+                data = zf.read(name)
+                hits = [n.decode() for n in needles if n in data]
+                if hits:
+                  print(f"{wheel}:{name} contains {', '.join(hits)}")
+                  bad = True
+          if bad:
+            sys.exit("glibc symbol check failed")
+          print("glibc symbol check passed")
+          PY
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: pypi-${{ matrix.name }}
+          name: pypi-linux-aarch64-gnu
+          path: target/wheels/*.whl
+
+  build-macos-x86:
+    runs-on: macos-15-intel
+    permissions:
+      contents: read
+    env:
+      TARGET: x86_64-apple-darwin
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.BUILD_PYTHON_VERSION }}
+
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip maturin
+          maturin build --release --locked --target ${{ env.TARGET }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-macos-x86_64
+          path: target/wheels/*.whl
+
+  build-macos-arm:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    env:
+      TARGET: aarch64-apple-darwin
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.BUILD_PYTHON_VERSION }}
+
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip maturin
+          maturin build --release --locked --target ${{ env.TARGET }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-macos-aarch64
+          path: target/wheels/*.whl
+
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      TARGET: x86_64-pc-windows-msvc
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.BUILD_PYTHON_VERSION }}
+
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip maturin
+          maturin build --release --locked --target ${{ env.TARGET }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-windows-x86_64
           path: target/wheels/*.whl
 
   build-sdist:
@@ -157,7 +276,11 @@ jobs:
     name: Publish to PyPI
     runs-on: ubuntu-latest
     needs:
-      - build-wheels
+      - build-linux-x86
+      - build-linux-arm
+      - build-macos-x86
+      - build-macos-arm
+      - build-windows
       - build-sdist
     permissions:
       contents: read
@@ -205,7 +328,11 @@ jobs:
     name: Create GitHub release
     runs-on: ubuntu-latest
     needs:
-      - build-wheels
+      - build-linux-x86
+      - build-linux-arm
+      - build-macos-x86
+      - build-macos-arm
+      - build-windows
       - build-sdist
     permissions:
       contents: write
