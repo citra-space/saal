@@ -174,7 +174,7 @@ pub const IDX_ORDER_READ: i32 = 2;
 // tree traversal order
 pub const IDX_ORDER_QUICK: i32 = 9;
 
-pub const DLL_VERSION: &str = "9.6";
+pub const DLL_VERSION: &str = env!("SAAL_MANIFEST_VERSION");
 
 /// Return the last error message reported by the DLL.
 pub fn get_last_error_message() -> String {
@@ -404,25 +404,7 @@ fn get_asset_directory() -> Option<PathBuf> {
         return Some(path);
     }
 
-    let exe_dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
-    let manifest_assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
-    let cwd_assets = std::env::current_dir().ok().map(|dir| dir.join("assets"));
-    if exe_dir.join("assets").exists() {
-        return Some(exe_dir.join("assets"));
-    }
-    if let Some(path) = cwd_assets
-        && path.exists()
-    {
-        return Some(path);
-    }
-    if let Some(path) = build_asset_directory() {
-        return Some(path);
-    }
-    if manifest_assets.exists() {
-        return Some(manifest_assets);
-    }
-
-    None
+    Some(std::env::current_exe().ok()?.parent()?.to_path_buf())
 }
 
 fn get_time_constants_path() -> Option<PathBuf> {

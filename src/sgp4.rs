@@ -614,6 +614,21 @@ mod tests {
     const XP_OSC_ARG_PERIGEE: f64 = 67.2046668254525;
 
     #[test]
+    fn test_custom_license_directory() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        let original_lic_path = get_license_directory();
+        set_license_directory("tests/custom_license_directory");
+        assert_eq!(get_license_directory(), "tests/custom_license_directory");
+        let sgp4_key = tle::load_lines(SGP4_LINE_1, SGP4_LINE_2);
+        load(sgp4_key).unwrap();
+        let state = get_position(sgp4_key, EPOCH).unwrap();
+        assert!(!state.is_empty());
+
+        set_license_directory(&original_lic_path);
+        assert_eq!(get_license_directory(), original_lic_path);
+    }
+
+    #[test]
     fn test_ephemeris_generation() {
         let _lock = TEST_LOCK.lock().unwrap();
         let sgp4_key = tle::load_lines(SGP4_LINE_1, SGP4_LINE_2);

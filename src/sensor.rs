@@ -988,8 +988,8 @@ pub fn get_arrays(sen_key: i64) -> Result<([f64; XA_SEN_SIZE], String), String> 
 
 #[cfg(test)]
 mod tests {
-    use crate::test_lock::TEST_LOCK;
     use super::*;
+    use crate::test_lock::TEST_LOCK;
 
     const SENSOR_CARD: &str = "211  3381724 -25333969 -1521161 -5083089  3530462  U SOCORRO CAM1              S";
     const NOISE_CARD: &str = "211 5   0.0003 0.0003 0.0000 0.0000  -0.0005 -0.0003  0.0000  0.0000  0.0000  BS";
@@ -998,7 +998,8 @@ mod tests {
     fn test_load_file() {
         let _lock = TEST_LOCK.lock().unwrap();
         load_file("tests/data/sensors.dat").unwrap();
-        assert_eq!(count_loaded(), 108);
+        prune_missing_locations().unwrap();
+        assert_eq!(count_loaded(), 98);
         let sensors = parse_all().unwrap();
         clear().unwrap();
         assert_eq!(count_loaded(), 0);

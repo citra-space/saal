@@ -7,7 +7,11 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use zip::ZipArchive;
 
+const MANIFEST_VERSION: &str = "9.6";
+
 fn main() {
+    let manifest_file = format!("manifest-{MANIFEST_VERSION}.json");
+
     // Determine the target OS and architecture.
     let target_os = env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS not set");
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").expect("CARGO_CFG_TARGET_ARCH not set");
@@ -40,12 +44,16 @@ fn main() {
         .expect("Couldn't determine target directory")
         .to_path_buf();
 
-    println!("cargo:rerun-if-changed=manifest.json");
-    let assets_dir = resolve_assets_dir(Path::new("assets"), &out_dir_path);
-    if assets_dir.starts_with(&out_dir_path) {
-        println!("cargo:rustc-env=SAAL_BUILD_ASSET_DIR={}", assets_dir.display());
+    println!("cargo:rerun-if-changed={}", manifest_file);
+    println!("cargo:rustc-env=SAAL_MANIFEST_VERSION={}", MANIFEST_VERSION);
+    let (assets_dir, assets_source_dir) = resolve_assets_dir(Path::new("assets"), &out_dir_path, &manifest_file);
+    if let Some(source_dir) = assets_source_dir.as_ref() {
+        emit_rerun_if_changed(source_dir);
     }
-    let lib_dir = resolve_lib_dir(lib_dir, &out_dir_path, &target_os, &target_arch);
+    let (lib_dir, lib_source_dir) = resolve_lib_dir(lib_dir, &out_dir_path, &target_os, &target_arch, &manifest_file);
+    if let Some(source_dir) = lib_source_dir.as_ref() {
+        emit_rerun_if_changed(source_dir);
+    }
 
     // Iterate over each file in the lib/ directory.
     for entry in fs::read_dir(&lib_dir).expect("Failed to read lib directory") {
@@ -186,25 +194,35 @@ struct LibArchive {
     sha256: String,
 }
 
-fn resolve_assets_dir(source_dir: &Path, out_dir: &Path) -> PathBuf {
+fn resolve_assets_dir(source_dir: &Path, out_dir: &Path, manifest_file: &str) -> (PathBuf, Option<PathBuf>) {
     if let Some(path) = asset_directory_override()
         && assets_present_in_dir(&path)
     {
-        return path;
+        if path.starts_with(out_dir) {
+            return (path, None);
+        }
+        let out_assets_dir = out_dir.join("assets");
+        copy_dir_recursive(&path, &out_assets_dir);
+        return (out_assets_dir, Some(path));
     }
 
     if assets_present_in_dir(source_dir) {
-        return source_dir.to_path_buf();
+        if source_dir.starts_with(out_dir) {
+            return (source_dir.to_path_buf(), None);
+        }
+        let out_assets_dir = out_dir.join("assets");
+        copy_dir_recursive(source_dir, &out_assets_dir);
+        return (out_assets_dir, Some(source_dir.to_path_buf()));
     }
 
     let out_assets_dir = out_dir.join("assets");
-    if !Path::new("manifest.json").exists() {
+    if !Path::new(manifest_file).exists() {
         fs::create_dir_all(&out_assets_dir)
             .unwrap_or_else(|e| panic!("Failed to create assets dir {}: {e}", out_assets_dir.display()));
-        return out_assets_dir;
+        return (out_assets_dir, None);
     }
 
-    let manifest = load_manifest().expect("Failed to read manifest.json");
+    let manifest = load_manifest(manifest_file).expect("Failed to read manifest");
     if manifest.version != 1 {
         panic!("Unsupported manifest version {}", manifest.version);
     }
@@ -212,37 +230,52 @@ fn resolve_assets_dir(source_dir: &Path, out_dir: &Path) -> PathBuf {
     if let Some(archive) = &manifest.assets_archive {
         download_assets_archive(archive, out_dir, manifest.release_version.as_deref());
         if assets_present_in_dir(&out_assets_dir) {
-            return out_assets_dir;
+            return (out_assets_dir, None);
         }
         if assets_present_in_dir(out_dir) {
-            return out_dir.to_path_buf();
+            return (out_dir.to_path_buf(), None);
         }
     }
 
     fs::create_dir_all(&out_assets_dir)
         .unwrap_or_else(|e| panic!("Failed to create assets dir {}: {e}", out_assets_dir.display()));
-    out_assets_dir
+    (out_assets_dir, None)
 }
 
-fn resolve_lib_dir(source_dir: &Path, out_dir: &Path, target_os: &str, target_arch: &str) -> PathBuf {
+fn resolve_lib_dir(
+    source_dir: &Path,
+    out_dir: &Path,
+    target_os: &str,
+    target_arch: &str,
+    manifest_file: &str,
+) -> (PathBuf, Option<PathBuf>) {
     if lib_dir_has_files(source_dir) {
-        return source_dir.to_path_buf();
+        if source_dir.starts_with(out_dir) {
+            return (source_dir.to_path_buf(), None);
+        }
+        let out_lib_dir = if source_dir.is_absolute() {
+            source_dir.to_path_buf()
+        } else {
+            out_dir.join(source_dir)
+        };
+        copy_dir_recursive(source_dir, &out_lib_dir);
+        return (out_lib_dir, Some(source_dir.to_path_buf()));
     }
 
     let out_lib_dir = out_dir.join(source_dir);
-    ensure_libs_downloaded(&out_lib_dir, out_dir, target_os, target_arch);
-    out_lib_dir
+    ensure_libs_downloaded(&out_lib_dir, out_dir, target_os, target_arch, manifest_file);
+    (out_lib_dir, None)
 }
 
-fn ensure_libs_downloaded(lib_dir: &Path, out_dir: &Path, target_os: &str, target_arch: &str) {
+fn ensure_libs_downloaded(lib_dir: &Path, out_dir: &Path, target_os: &str, target_arch: &str, manifest_file: &str) {
     if lib_dir_has_files(lib_dir) {
         return;
     }
-    if !Path::new("manifest.json").exists() {
+    if !Path::new(manifest_file).exists() {
         return;
     }
 
-    let manifest = load_manifest().expect("Failed to read manifest.json");
+    let manifest = load_manifest(manifest_file).expect("Failed to read manifest");
     if manifest.version != 1 {
         panic!("Unsupported manifest version {}", manifest.version);
     }
@@ -269,12 +302,7 @@ fn ensure_libs_downloaded(lib_dir: &Path, out_dir: &Path, target_os: &str, targe
 }
 
 fn lib_dir_has_files(dir: &Path) -> bool {
-    if !dir.exists() {
-        return false;
-    }
-    fs::read_dir(dir)
-        .map(|mut entries| entries.any(|entry| entry.map(|e| e.path().is_file()).unwrap_or(false)))
-        .unwrap_or(false)
+    dir_has_files_recursive(dir)
 }
 
 fn download_assets_archive(archive: &Archive, dest_root: &Path, release_version: Option<&str>) {
@@ -294,17 +322,80 @@ fn asset_directory_override() -> Option<PathBuf> {
 }
 
 fn assets_present_in_dir(dir: &Path) -> bool {
+    dir_has_files_recursive(dir)
+}
+
+fn dir_has_files_recursive(dir: &Path) -> bool {
     if !dir.exists() {
         return false;
     }
-    fs::read_dir(dir)
-        .map(|mut entries| entries.any(|entry| entry.map(|e| e.path().is_file()).unwrap_or(false)))
-        .unwrap_or(false)
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(path) = stack.pop() {
+        let entries = match fs::read_dir(&path) {
+            Ok(entries) => entries,
+            Err(_) => continue,
+        };
+        for entry in entries.flatten() {
+            let file_type = match entry.file_type() {
+                Ok(file_type) => file_type,
+                Err(_) => continue,
+            };
+            if file_type.is_file() || file_type.is_symlink() {
+                return true;
+            }
+            if file_type.is_dir() {
+                stack.push(entry.path());
+            }
+        }
+    }
+    false
 }
 
-fn load_manifest() -> Result<Manifest, String> {
-    let content = fs::read_to_string("manifest.json").map_err(|e| format!("failed to read manifest.json: {e}"))?;
-    serde_json::from_str(&content).map_err(|e| format!("failed to parse manifest.json: {e}"))
+fn emit_rerun_if_changed(dir: &Path) {
+    let entries = fs::read_dir(dir).unwrap_or_else(|e| panic!("Failed to read {}: {e}", dir.display()));
+    for entry in entries {
+        let entry = entry.unwrap_or_else(|e| panic!("Failed to read entry in {}: {e}", dir.display()));
+        let path = entry.path();
+        let file_type = entry
+            .file_type()
+            .unwrap_or_else(|e| panic!("Failed to read file type for {}: {e}", path.display()));
+        if file_type.is_dir() {
+            emit_rerun_if_changed(&path);
+            continue;
+        }
+        if file_type.is_file() || file_type.is_symlink() {
+            println!("cargo:rerun-if-changed={}", path.display());
+        }
+    }
+}
+
+fn copy_dir_recursive(source_dir: &Path, dest_dir: &Path) {
+    if source_dir == dest_dir {
+        return;
+    }
+    fs::create_dir_all(dest_dir).unwrap_or_else(|e| panic!("Failed to create {}: {e}", dest_dir.display()));
+    let entries = fs::read_dir(source_dir).unwrap_or_else(|e| panic!("Failed to read {}: {e}", source_dir.display()));
+    for entry in entries {
+        let entry = entry.unwrap_or_else(|e| panic!("Failed to read entry in {}: {e}", source_dir.display()));
+        let path = entry.path();
+        let file_type = entry
+            .file_type()
+            .unwrap_or_else(|e| panic!("Failed to read file type for {}: {e}", path.display()));
+        let dest_path = dest_dir.join(entry.file_name());
+        if file_type.is_dir() {
+            copy_dir_recursive(&path, &dest_path);
+            continue;
+        }
+        if file_type.is_file() || file_type.is_symlink() {
+            fs::copy(&path, &dest_path)
+                .unwrap_or_else(|e| panic!("Failed to copy {} to {}: {e}", path.display(), dest_path.display()));
+        }
+    }
+}
+
+fn load_manifest(manifest_file: &str) -> Result<Manifest, String> {
+    let content = fs::read_to_string(manifest_file).map_err(|e| format!("failed to read {manifest_file}: {e}"))?;
+    serde_json::from_str(&content).map_err(|e| format!("failed to parse {manifest_file}: {e}"))
 }
 
 fn resolve_url(template: &str, release_version: Option<&str>) -> Result<String, String> {
