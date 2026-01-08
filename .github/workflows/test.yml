@@ -66,6 +66,34 @@ jobs:
           container: ${{ matrix.container }}
           args: --release
 
+      - name: Check wheel glibc symbols (linux)
+        if: ${{ startsWith(matrix.name, 'linux-') }}
+        run: |
+          python - <<'PY'
+          import glob
+          import zipfile
+          import sys
+          needles = [b"GLIBC_2.29", b"__cxa_thread_atexit_impl"]
+          wheels = glob.glob("target/wheels/*.whl")
+          if not wheels:
+            print("No wheels found")
+            sys.exit(1)
+          bad = False
+          for wheel in wheels:
+            with zipfile.ZipFile(wheel) as zf:
+              for name in zf.namelist():
+                if not name.endswith(".so"):
+                  continue
+                data = zf.read(name)
+                hits = [n.decode() for n in needles if n in data]
+                if hits:
+                  print(f"{wheel}:{name} contains {', '.join(hits)}")
+                  bad = True
+          if bad:
+            sys.exit("glibc symbol check failed")
+          print("glibc symbol check passed")
+          PY
+
       - name: Build wheel
         if: ${{ !startsWith(matrix.name, 'linux-') }}
         run: |
