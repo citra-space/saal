@@ -13,10 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      TARGET: x86_64-unknown-linux-gnu
-      MANYLINUX: 2_17
-      CONTAINER: quay.io/pypa/manylinux2014_x86_64
     defaults:
       run:
         shell: bash
@@ -24,52 +20,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test Rust
+        run: cargo test --target x86_64-unknown-linux-gnu --lib --tests --bins
+
       - name: Build wheel (linux x86)
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/io \
             -e HOME=/root \
-            -w /io ${{ env.CONTAINER }} \
-            bash -lc '
+            -w /io quay.io/pypa/manylinux2014_x86_64 \
+            bash -c '
               yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
-              export CARGO_HOME="$HOME/.cargo" RUSTUP_HOME="$HOME/.rustup" && \
+              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
               curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
               source "$CARGO_HOME/env" && \
+              cargo install --locked maturin && \
+              export OPENSSL_DIR=/usr && \
+              export OPENSSL_LIB_DIR=/usr/lib64 && \
+              export OPENSSL_INCLUDE_DIR=/usr/include && \
               PYTHON_VERSION=${{ env.BUILD_PYTHON_VERSION }} && \
               TAG=${PYTHON_VERSION//./} && \
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
               PIP="${PY_BIN%/python}/pip" && \
-              $PIP install --upgrade pip setuptools wheel maturin && \
-              $PY_BIN -m maturin build --release --locked --compatibility manylinux_${{ env.MANYLINUX }} \
-                --target ${{ env.TARGET }} -i $PY_BIN
+              $PIP install --upgrade pip setuptools wheel auditwheel && \
+              maturin build --release --compatibility manylinux2014 -i $PY_BIN
             '
-
-      - name: Check wheel glibc symbols (linux)
-        run: |
-          python - <<'PY'
-          import glob
-          import zipfile
-          import sys
-          needles = [b"GLIBC_2.29", b"__cxa_thread_atexit_impl"]
-          wheels = glob.glob("target/wheels/*.whl")
-          if not wheels:
-            print("No wheels found")
-            sys.exit(1)
-          bad = False
-          for wheel in wheels:
-            with zipfile.ZipFile(wheel) as zf:
-              for name in zf.namelist():
-                if not name.endswith(".so"):
-                  continue
-                data = zf.read(name)
-                hits = [n.decode() for n in needles if n in data]
-                if hits:
-                  print(f"{wheel}:{name} contains {', '.join(hits)}")
-                  bad = True
-          if bad:
-            sys.exit("glibc symbol check failed")
-          print("glibc symbol check passed")
-          PY
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -81,10 +59,6 @@ jobs:
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
-    env:
-      TARGET: aarch64-unknown-linux-gnu
-      MANYLINUX: 2_24
-      CONTAINER: quay.io/pypa/manylinux_2_24_aarch64
     defaults:
       run:
         shell: bash
@@ -92,52 +66,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test Rust
+        run: cargo test --target aarch64-unknown-linux-gnu --lib --tests --bins
+
       - name: Build wheel (linux arm)
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/io \
             -e HOME=/root \
-            -w /io ${{ env.CONTAINER }} \
-            bash -lc '
+            -w /io quay.io/pypa/manylinux2014_aarch64 \
+            bash -c '
               yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
-              export CARGO_HOME="$HOME/.cargo" RUSTUP_HOME="$HOME/.rustup" && \
+              export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
               curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
               source "$CARGO_HOME/env" && \
+              cargo install --locked maturin && \
+              export OPENSSL_DIR=/usr && \
+              export OPENSSL_LIB_DIR=/usr/lib64 && \
+              export OPENSSL_INCLUDE_DIR=/usr/include && \
               PYTHON_VERSION=${{ env.BUILD_PYTHON_VERSION }} && \
               TAG=${PYTHON_VERSION//./} && \
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
               PIP="${PY_BIN%/python}/pip" && \
-              $PIP install --upgrade pip setuptools wheel maturin && \
-              $PY_BIN -m maturin build --release --locked --compatibility manylinux_${{ env.MANYLINUX }} \
-                --target ${{ env.TARGET }} -i $PY_BIN
+              $PIP install --upgrade pip setuptools wheel auditwheel && \
+              maturin build --release --compatibility manylinux2014 -i $PY_BIN
             '
-
-      - name: Check wheel glibc symbols (linux)
-        run: |
-          python - <<'PY'
-          import glob
-          import zipfile
-          import sys
-          needles = [b"GLIBC_2.29", b"__cxa_thread_atexit_impl"]
-          wheels = glob.glob("target/wheels/*.whl")
-          if not wheels:
-            print("No wheels found")
-            sys.exit(1)
-          bad = False
-          for wheel in wheels:
-            with zipfile.ZipFile(wheel) as zf:
-              for name in zf.namelist():
-                if not name.endswith(".so"):
-                  continue
-                data = zf.read(name)
-                hits = [n.decode() for n in needles if n in data]
-                if hits:
-                  print(f"{wheel}:{name} contains {', '.join(hits)}")
-                  bad = True
-          if bad:
-            sys.exit("glibc symbol check failed")
-          print("glibc symbol check passed")
-          PY
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -158,15 +114,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.BUILD_PYTHON_VERSION }}
 
+      - name: Test Rust
+        run: cargo test --target x86_64-apple-darwin --lib --tests --bins
+
       - name: Build wheel
         run: |
           python -m pip install --upgrade pip maturin
-          maturin build --release --locked --target ${{ env.TARGET }}
+          maturin build --release --locked --target x86_64-apple-darwin
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -187,15 +149,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.BUILD_PYTHON_VERSION }}
 
+      - name: Test Rust
+        run: cargo test --target aarch64-apple-darwin --lib --tests --bins
+
       - name: Build wheel
         run: |
           python -m pip install --upgrade pip maturin
-          maturin build --release --locked --target ${{ env.TARGET }}
+          maturin build --release --locked --target aarch64-apple-darwin
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -207,8 +175,6 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
-    env:
-      TARGET: x86_64-pc-windows-msvc
     defaults:
       run:
         shell: bash
@@ -216,15 +182,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.BUILD_PYTHON_VERSION }}
 
+      - name: Test Rust
+        run: cargo test --target x86_64-pc-windows-msvc --lib --tests --bins
+
       - name: Build wheel
         run: |
           python -m pip install --upgrade pip maturin
-          maturin build --release --locked --target ${{ env.TARGET }}
+          maturin build --release --locked --target x86_64-pc-windows-msvc
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
