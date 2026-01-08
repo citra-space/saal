@@ -37,12 +37,10 @@ jobs:
               export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
               curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
               source "$CARGO_HOME/env" && \
-              cargo install --locked cargo-make && \
               cargo install --locked maturin && \
               export OPENSSL_DIR=/usr && \
               export OPENSSL_LIB_DIR=/usr/lib64 && \
               export OPENSSL_INCLUDE_DIR=/usr/include && \
-              cargo make copy-linux-x86 && \
               PYTHON_VERSION=${{ env.BUILD_PYTHON_VERSION }} && \
               TAG=${PYTHON_VERSION//./} && \
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
@@ -83,12 +81,10 @@ jobs:
               export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
               curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
               source "$CARGO_HOME/env" && \
-              cargo install --locked cargo-make && \
               cargo install --locked maturin && \
               export OPENSSL_DIR=/usr && \
               export OPENSSL_LIB_DIR=/usr/lib64 && \
               export OPENSSL_INCLUDE_DIR=/usr/include && \
-              cargo make copy-linux-arm && \
               PYTHON_VERSION=${{ env.BUILD_PYTHON_VERSION }} && \
               TAG=${PYTHON_VERSION//./} && \
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
