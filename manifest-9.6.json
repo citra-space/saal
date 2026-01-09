@@ -22,7 +22,7 @@
       "os": "linux",
       "arch": "aarch64",
       "url": "https://github.com/citra-space/saal/releases/download/v{version}-source/linux-arm.zip",
-      "sha256": "sha256:e5f9cd23c57095155ec302adab37cd21f358839717db0533e22cb4ec5a095e94"
+      "sha256": "sha256:3eb3236d7c3587160e95f2378fe833b1b670961b2cfd3146ad87af36fb48fe25"
     },
     {
       "os": "linux",
