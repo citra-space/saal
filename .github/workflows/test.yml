@@ -69,7 +69,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Test Rust
-        run: cargo test --target aarch64-unknown-linux-gnu --lib --tests --bins
+        run: |
+          pwd
+          find . -maxdepth 5 -type f -name 'libdllmain.so' -o -name 'libenvconst.so' -o -name 'libtimefunc.so'
+          cargo test --target aarch64-unknown-linux-gnu --lib --tests --bins
 
       - name: Build wheel (linux arm)
         run: |
