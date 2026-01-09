@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 use crate::astro::{
     brouwer_to_kozai, cartesian_to_keplerian, efg_to_lla, equinoctial_to_keplerian, get_dll_info,
     gst_teme_to_lla, keplerian_to_cartesian, keplerian_to_equinoctial, kozai_to_brouwer,
-    mean_motion_to_sma, osculating_to_mean, sma_to_mean_motion,
+    mean_motion_to_sma, osculating_to_mean, sma_to_mean_motion, time_teme_to_lla,
 };
 use crate::DLL_VERSION;
 
@@ -70,6 +70,10 @@ impl AstroInterface {
 
     fn gst_teme_to_lla(&self, gst: f64, teme_pos: [f64; 3]) -> PyResult<[f64; 3]> {
         Ok(gst_teme_to_lla(gst, &teme_pos))
+    }
+
+    fn time_teme_to_lla(&self, ds50_utc: f64, teme_pos: [f64; 3]) -> PyResult<[f64; 3]> {
+        Ok(time_teme_to_lla(ds50_utc, &teme_pos))
     }
 
     fn efg_to_lla(&self, efg_pos: [f64; 3]) -> PyResult<[f64; 3]> {

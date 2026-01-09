@@ -1,6 +1,6 @@
 [project]
 name = "pysaal"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = []
 description = "A typed Python wrapper for the Standardized Astrodynamics Algorithms Library."
 authors = [
