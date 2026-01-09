@@ -34,9 +34,11 @@ jobs:
             -w /io quay.io/pypa/manylinux2014_x86_64 \
             bash -c '
               yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
-              env | sort | rg -i 'LD|RUST|CARGO|PYTHON' && \
+              set +o pipefail && \
+              env | sort | grep -i -E 'LD|RUST|CARGO|PYTHON' && \
               find /io -name 'libgcc_s.so.1' -o -name 'libgcc_s.so*' && \
               file /lib64/libgcc_s.so.1 && sha256sum /lib64/libgcc_s.so.1 && \
+              set -o pipefail && \
               cat /etc/os-release && rpm -q libgcc && ls -l /lib64/libgcc_s.so.1 && \
               export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
               curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
@@ -83,9 +85,11 @@ jobs:
             -w /io quay.io/pypa/manylinux2014_aarch64 \
             bash -c '
               yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
-              env | sort | rg -i 'LD|RUST|CARGO|PYTHON' && \
+              set +o pipefail && \
+              env | sort | grep -i -E 'LD|RUST|CARGO|PYTHON' && \
               find /io -name 'libgcc_s.so.1' -o -name 'libgcc_s.so*' && \
               file /lib64/libgcc_s.so.1 && sha256sum /lib64/libgcc_s.so.1 && \
+              set -o pipefail && \
               cat /etc/os-release && rpm -q libgcc && ls -l /lib64/libgcc_s.so.1 && \
               export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
               curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
