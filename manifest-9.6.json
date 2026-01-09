@@ -28,7 +28,7 @@
       "os": "linux",
       "arch": "x86_64",
       "url": "https://github.com/citra-space/saal/releases/download/v{version}-source/linux-x86.zip",
-      "sha256": "sha256:989d153481a64807c700c68a96a0a6d40fb02255b90df86b98543c42051c950b"
+      "sha256": "sha256:1966c8b3d2df160fbb8395ab979f31539d6d9e284e8b44747910e3be15483336"
     },
     {
       "os": "windows",
