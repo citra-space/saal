@@ -229,6 +229,16 @@ fn resolve_assets_dir(source_dir: &Path, out_dir: &Path, manifest_file: &str) ->
 
     if let Some(archive) = &manifest.assets_archive {
         download_assets_archive(archive, out_dir, manifest.release_version.as_deref());
+        // after your download step:
+        println!("cargo:warning=OUT_DIR={}", out_dir.display());
+
+        // and list what you downloaded (example path)
+        println!("cargo:warning=lib_dir={}", out_dir.display());
+        if let Ok(rd) = std::fs::read_dir(out_dir) {
+            for e in rd.flatten() {
+                println!("cargo:warning=downloaded={}", e.path().display());
+            }
+        }
         if assets_present_in_dir(&out_assets_dir) {
             return (out_assets_dir, None);
         }
