@@ -57,25 +57,7 @@ fn main() {
 
     // Iterate over each file in the lib/ directory.
     let lib_targets = [target_dir.clone(), target_dir.join("deps")];
-    for entry in fs::read_dir(&lib_dir).expect("Failed to read lib directory") {
-        let entry = entry.expect("Failed to access entry in lib directory");
-        let path = entry.path();
-
-        if path.is_file() {
-            // Tell Cargo to rerun the build script if this source file changes.
-            if !lib_dir.starts_with(&out_dir_path) {
-                println!("cargo:rerun-if-changed={}", path.display());
-            }
-
-            let file_name = path.file_name().expect("Invalid file name");
-            for dest_dir in &lib_targets {
-                fs::create_dir_all(dest_dir).expect("Failed to create lib destination directory");
-                let dest_path = dest_dir.join(file_name);
-                fs::copy(&path, &dest_path)
-                    .unwrap_or_else(|_| panic!("Failed to copy {} to {}", path.display(), dest_path.display()));
-            }
-        }
-    }
+    copy_libs_recursive(&lib_dir, &lib_targets, &out_dir_path);
 
     if assets_dir.exists() {
         let asset_targets = [target_dir.clone(), target_dir.join("deps")];
@@ -400,6 +382,43 @@ fn copy_dir_recursive(source_dir: &Path, dest_dir: &Path) {
         if file_type.is_file() || file_type.is_symlink() {
             fs::copy(&path, &dest_path)
                 .unwrap_or_else(|e| panic!("Failed to copy {} to {}: {e}", path.display(), dest_path.display()));
+        }
+    }
+}
+
+fn copy_libs_recursive(source_dir: &Path, dest_dirs: &[PathBuf], out_dir: &Path) {
+    if !source_dir.exists() {
+        return;
+    }
+    let mut stack = vec![source_dir.to_path_buf()];
+    while let Some(path) = stack.pop() {
+        let entries = match fs::read_dir(&path) {
+            Ok(entries) => entries,
+            Err(_) => continue,
+        };
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            let file_type = match entry.file_type() {
+                Ok(file_type) => file_type,
+                Err(_) => continue,
+            };
+            if file_type.is_dir() {
+                stack.push(entry_path);
+                continue;
+            }
+            if file_type.is_file() || file_type.is_symlink() {
+                if !source_dir.starts_with(out_dir) {
+                    println!("cargo:rerun-if-changed={}", entry_path.display());
+                }
+                let file_name = entry_path.file_name().expect("Invalid file name");
+                for dest_dir in dest_dirs {
+                    fs::create_dir_all(dest_dir).expect("Failed to create lib destination directory");
+                    let dest_path = dest_dir.join(file_name);
+                    fs::copy(&entry_path, &dest_path)
+                        .unwrap_or_else(|_| panic!("Failed to copy {} to {}", entry_path.display(), dest_path.display()));
+                    println!("cargo:warning=lib_copied_to={}", dest_path.display());
+                }
+            }
         }
     }
 }
