@@ -552,6 +552,14 @@ pub fn constants_loaded() -> bool {
     unsafe { IsTConFileLoaded() != 0 }
 }
 
+pub fn clear_constants() -> Result<(), String> {
+    let err_code = unsafe { TConRemoveAll() };
+    match err_code {
+        0 => Ok(()),
+        _ => Err(get_last_error_message()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

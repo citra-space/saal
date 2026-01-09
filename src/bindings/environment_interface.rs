@@ -3,8 +3,8 @@ use pyo3::prelude::*;
 
 use crate::environment::{
     get_dll_info, get_earth_flattening, get_earth_mu, get_earth_radius, get_earth_rotation_acceleration,
-    get_earth_rotation_rate, get_fundamental_catalog, get_j2, get_j3, get_j4, get_j5, load_from_file,
-    set_fundamental_catalog,
+    get_earth_rotation_rate, get_fundamental_catalog, get_geopotential_model, get_j2, get_j3, get_j4, get_j5,
+    load_from_file, set_fundamental_catalog, set_geopotential_model,
 };
 use crate::DLL_VERSION;
 
@@ -34,6 +34,10 @@ impl EnvironmentInterface {
     #[getter]
     fn info(&self) -> PyResult<String> {
         Ok(self.info.clone())
+    }
+
+    fn load_from_file(&self, file_name: String) -> PyResult<()> {
+        load_from_file(&file_name).map_err(PyRuntimeError::new_err)
     }
 
     #[getter]
@@ -89,6 +93,17 @@ impl EnvironmentInterface {
     #[setter]
     fn set_fundamental_catalog(&self, catalog: i32) -> PyResult<()> {
         set_fundamental_catalog(catalog);
+        Ok(())
+    }
+
+    #[getter]
+    fn geopotential_model(&self) -> PyResult<i32> {
+        get_geopotential_model().map_err(PyRuntimeError::new_err)
+    }
+
+    #[setter]
+    fn set_geopotential_model(&self, geo_model: i32) -> PyResult<()> {
+        set_geopotential_model(geo_model);
         Ok(())
     }
 }

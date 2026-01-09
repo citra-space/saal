@@ -2,8 +2,9 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 use crate::{
-    DLL_VERSION, get_dll_info, get_duplicate_key_mode, get_elset_key_mode, get_key_mode, get_last_error_message,
-    get_last_info_message, load_from_file, reset_key_mode, set_duplicate_key_mode, set_elset_key_mode, set_key_mode,
+    initialize_time_constants, DLL_VERSION, get_dll_info, get_duplicate_key_mode, get_elset_key_mode, get_key_mode,
+    get_last_error_message, get_last_info_message, load_from_file, reset_key_mode, set_duplicate_key_mode,
+    set_elset_key_mode, set_key_mode,
 };
 
 #[pyclass]
@@ -32,6 +33,15 @@ impl MainInterface {
     #[getter]
     fn info(&self) -> PyResult<String> {
         Ok(self.info.clone())
+    }
+
+    fn load_from_file(&self, file_name: String) -> PyResult<()> {
+        load_from_file(&file_name).map_err(PyRuntimeError::new_err)
+    }
+
+    fn initialize_time_constants(&self) -> PyResult<()> {
+        initialize_time_constants();
+        Ok(())
     }
 
     #[getter]

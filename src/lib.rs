@@ -376,12 +376,24 @@ pub fn get_duplicate_key_mode() -> Result<i32, String> {
 #[ctor]
 fn initialize() {
     set_key_mode(ALL_KEYMODE_DMA).unwrap();
+    initialize_time_constants();
+    initialize_jpl_ephemeris();
+    initialize_sgp4_license();
+}
+
+pub fn initialize_time_constants() {
     if let Some(path) = get_time_constants_path() {
         time::load_constants(path.to_str().unwrap()).unwrap();
     }
+}
+
+pub fn initialize_jpl_ephemeris() {
     if let Some(path) = get_jpl_file_path() {
         astro::set_jpl_ephemeris_file_path(path.to_str().unwrap());
     }
+}
+
+pub fn initialize_sgp4_license() {
     if let Some(asset_dir) = get_asset_directory() {
         sgp4::set_license_directory(asset_dir.to_str().unwrap());
     }

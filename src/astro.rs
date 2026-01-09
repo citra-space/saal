@@ -904,8 +904,21 @@ mod tests {
     use super::*;
     use crate::environment::{XF_GEOMOD_WGS72, XF_GEOMOD_WGS84};
     use crate::test_lock::TEST_LOCK;
-    use crate::{DLL_VERSION, environment};
+    use crate::{DLL_VERSION, environment, initialize_time_constants, time};
     use approx::assert_abs_diff_eq;
+    use std::f64::consts::PI;
+
+    fn hour_min_sec_to_deg(hr: f64, mn: f64, sc: f64) -> f64 {
+        (hr / 24.0 + mn / (24.0 * 60.0) + sc / (24.0 * 60.0 * 60.0)) * 360.0
+    }
+
+    fn deg_min_sec_to_deg(deg: f64, mn: f64, sc: f64) -> f64 {
+        if deg < 0.0 {
+            deg - mn / 60.0 - sc / 3600.0
+        } else {
+            deg + mn / 60.0 + sc / 3600.0
+        }
+    }
 
     #[test]
     fn test_get_dll_info_contains_version() {
@@ -1035,6 +1048,119 @@ mod tests {
         assert_abs_diff_eq!(llh[0], 34.352495, epsilon = 1.0e-5);
         assert_abs_diff_eq!(llh[1], 46.446417, epsilon = 1.0e-5);
         assert_abs_diff_eq!(llh[2], 5085.218731, epsilon = 1.0e-5);
+    }
+
+    #[test]
+    fn test_time_teme_to_lla_without_tcon() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        time::clear_constants().unwrap();
+        let ds50_utc = 17687.91562858796;
+        let xyz = [6524.834, 6862.875, 6448.296];
+        let llh = time_teme_to_lla(ds50_utc, &xyz);
+        initialize_time_constants();
+
+        assert_abs_diff_eq!(llh[0], 34.3524936102065, epsilon = 1.0e-9);
+        assert_abs_diff_eq!(llh[1], 183.6827264765011, epsilon = 1.0e-9);
+        assert_abs_diff_eq!(llh[2], 5085.220665718614, epsilon = 1.0e-9);
+    }
+
+    #[test]
+    fn test_lla_to_teme_without_tcon() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        time::clear_constants().unwrap();
+        let ds50_utc = 17687.91562858796;
+        let llh = [34.3524936102065, 183.6827264765011, 5085.220665718614];
+        let xyz = lla_to_teme(ds50_utc, &llh);
+        initialize_time_constants();
+
+        assert_abs_diff_eq!(xyz[0], 6524.834045160657, epsilon = 1.0e-9);
+        assert_abs_diff_eq!(xyz[1], 6862.875047500358, epsilon = 1.0e-9);
+        assert_abs_diff_eq!(xyz[2], 6448.295904107691, epsilon = 1.0e-9);
+    }
+
+    #[test]
+    fn test_ra_dec_to_az_el_without_tcon() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        time::clear_constants().unwrap();
+        let ds50_utc = time::dtg_to_ds50("13/217 0714 13.657");
+        let theta_g = time::get_fk5_greenwich_angle(time::utc_to_ut1(ds50_utc));
+        let ra = hour_min_sec_to_deg(21.0, 45.0, 19.003);
+        let dec = deg_min_sec_to_deg(-3.0, 17.0, 54.51);
+        let lla = [20.71126, 203.7394, 0.0];
+
+        let az_el = gst_ra_dec_to_az_el(theta_g, &lla, ra, dec);
+
+        assert_abs_diff_eq!(az_el[0], 104.90532853088844, epsilon = 1.0e-10);
+        assert_abs_diff_eq!(az_el[1], 26.497513882129642, epsilon = 1.0e-10);
+
+        let az_el_time = time_ra_dec_to_az_el(ds50_utc, &lla, ra, dec);
+        initialize_time_constants();
+        assert_abs_diff_eq!(az_el_time[0], az_el[0], epsilon = 1.0e-10);
+        assert_abs_diff_eq!(az_el_time[1], az_el[1], epsilon = 1.0e-10);
+    }
+
+    #[test]
+    fn test_horizon_to_teme() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        let lst = 4.01991574771239;
+        let lat = 54.0;
+        let xa_rae = [
+            0.430460160479830 * 6378.135,
+            311.60356010055284,
+            0.0003630520892354455,
+            -2.77471740320679,
+            -0.143557569934800,
+            2.461934326381368e-2,
+        ];
+        let sensor_teme = [-2398.87840986937, -2891.94814468770, 5136.98500000000];
+        let posvel = horizon_to_teme(lst, lat, &sensor_teme, &xa_rae).unwrap();
+
+        assert_abs_diff_eq!(posvel[0], -3037.43093289, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(posvel[1], -446.126832813, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(posvel[2], 6208.50743365, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(posvel[3], -5.937185805, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(posvel[4], -3.51389427125, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(posvel[5], -3.15199314614, epsilon = 1.0e-7);
+    }
+
+    #[test]
+    fn test_teme_to_topo() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        let lst = 4.01991574771239;
+        let lat = 0.942477796076938 * 180.0 / PI;
+        let sen_teme_pos = [-2398.87840986937, -2891.94814468770, 5136.98500000000];
+        let sat_teme_posvel = [
+            -3037.43125693340,
+            -446.126917413657,
+            6208.50743364866,
+            -5.93718561230045,
+            -3.51389500931854,
+            -3.15199346948741,
+        ];
+        let topo = teme_to_topo(lst, lat, &sen_teme_pos, &sat_teme_posvel).unwrap();
+
+        assert_abs_diff_eq!(topo[XA_TOPO_RA], 104.63211485, epsilon = 1.0e-4);
+        assert_abs_diff_eq!(topo[XA_TOPO_DEC], 22.9718279282, epsilon = 1.0e-4);
+        assert_abs_diff_eq!(topo[XA_TOPO_AZ], 311.60356010055284, epsilon = 1.0e-4);
+        assert_abs_diff_eq!(topo[XA_TOPO_EL], 0.0003630520892354455, epsilon = 1.0e-4);
+        assert_abs_diff_eq!(topo[XA_TOPO_RANGE], 0.430460160479830 * 6378.135, epsilon = 1.0e-4);
+        assert_abs_diff_eq!(topo[XA_TOPO_RADOT], 0.15395211773785697, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(topo[XA_TOPO_DECDOT], -0.046898266550268346, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(topo[XA_TOPO_AZDOT], -0.143557569934800, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(topo[XA_TOPO_ELDOT], 2.461934326381368e-2, epsilon = 1.0e-7);
+        assert_abs_diff_eq!(topo[XA_TOPO_RANGEDOT], -2.77471740320679, epsilon = 1.0e-7);
+    }
+
+    #[test]
+    fn test_point_is_sunlit() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        let ds50_tt = 18989.0;
+        let mut pt = [5032.21272487, 2025.7763831, 3106.4954366];
+
+        assert!(!point_is_sunlit(ds50_tt, &pt));
+
+        pt[1] = -2025.7763831;
+        assert!(point_is_sunlit(ds50_tt, &pt));
     }
 
     #[test]

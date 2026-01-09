@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 
 use crate::DLL_VERSION;
 use crate::time::{
-    constants_loaded, ds50_to_dtg15, ds50_to_dtg17, ds50_to_dtg19, ds50_to_dtg20,
+    clear_constants, constants_loaded, ds50_to_dtg15, ds50_to_dtg17, ds50_to_dtg19, ds50_to_dtg20,
     ds50_to_ymd_components, ds50_to_year_doy, dtg_to_ds50, get_dll_info,
     get_fk4_greenwich_angle, get_fk5_greenwich_angle, load_constants, tai_to_utc, tai_to_ut1,
     utc_to_tai, utc_to_tt, utc_to_ut1, year_doy_to_ds50, ymd_components_to_ds50,
@@ -127,6 +127,10 @@ impl TimeInterface {
 
     fn time_constants_loaded(&self) -> PyResult<bool> {
         Ok(constants_loaded())
+    }
+
+    fn clear_constants(&self) -> PyResult<()> {
+        clear_constants().map_err(PyRuntimeError::new_err)
     }
 }
 
