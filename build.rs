@@ -56,6 +56,7 @@ fn main() {
     }
 
     // Iterate over each file in the lib/ directory.
+    let lib_targets = [target_dir.clone(), target_dir.join("deps")];
     for entry in fs::read_dir(&lib_dir).expect("Failed to read lib directory") {
         let entry = entry.expect("Failed to access entry in lib directory");
         let path = entry.path();
@@ -66,13 +67,13 @@ fn main() {
                 println!("cargo:rerun-if-changed={}", path.display());
             }
 
-            // Determine the destination path in the target directory.
             let file_name = path.file_name().expect("Invalid file name");
-            let dest_path = target_dir.join(file_name);
-
-            // Copy the file.
-            fs::copy(&path, &dest_path)
-                .unwrap_or_else(|_| panic!("Failed to copy {} to {}", path.display(), dest_path.display()));
+            for dest_dir in &lib_targets {
+                fs::create_dir_all(dest_dir).expect("Failed to create lib destination directory");
+                let dest_path = dest_dir.join(file_name);
+                fs::copy(&path, &dest_path)
+                    .unwrap_or_else(|_| panic!("Failed to copy {} to {}", path.display(), dest_path.display()));
+            }
         }
     }
 
