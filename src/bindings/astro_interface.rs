@@ -6,7 +6,8 @@ use crate::astro::{
     ecr_to_efg, ecr_to_j2000, ecr_to_teme, efg_to_ecr, efg_to_j2000, efg_to_lla, efg_to_teme,
     equinoctial_to_keplerian, get_dll_info, get_earth_obstruction_angles, get_jpl_sun_and_moon_position,
     gst_ra_dec_to_az_el, gst_teme_to_lla, horizon_to_teme, j2000_to_ecr, j2000_to_efg, j2000_to_teme,
-    keplerian_to_cartesian, keplerian_to_equinoctial, kozai_to_brouwer, lla_to_teme, mean_motion_to_sma,
+    keplerian_to_cartesian, keplerian_to_equinoctial, kozai_to_brouwer, lla_to_teme, llh_to_efg,
+    mean_motion_to_sma,
     osculating_to_mean, point_is_sunlit, set_jpl_ephemeris_file_path, sma_to_mean_motion, teme_to_ecr,
     teme_to_efg, teme_to_j2000, teme_to_topo, time_ra_dec_to_az_el, time_teme_to_lla, topo_meme_to_teme,
     topo_teme_to_meme,
@@ -128,6 +129,10 @@ impl AstroInterface {
 
     fn lla_to_teme(&self, ds50_utc: f64, pos_lla: [f64; 3]) -> PyResult<[f64; 3]> {
         Ok(lla_to_teme(ds50_utc, &pos_lla))
+    }
+
+    fn lla_to_efg(&self, pos_lla: [f64; 3]) -> PyResult<[f64; 3]> {
+        Ok(llh_to_efg(&pos_lla))
     }
 
     fn topo_meme_to_teme(&self, yr_of_equinox: i32, ds50_utc: f64, ra: f64, dec: f64) -> PyResult<(f64, f64)> {

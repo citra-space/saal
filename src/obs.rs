@@ -1,7 +1,7 @@
 // This wrapper file was generated automatically by the GenDllWrappers program.
 #![allow(non_snake_case)]
 #![allow(dead_code)]
-use crate::{GetSetString, get_last_error_message};
+use crate::{GetSetString, IDX_ORDER_QUICK, astro, get_last_error_message, sensor::ParsedSensor};
 use std::os::raw::c_char;
 
 unsafe extern "C" {
@@ -945,6 +945,196 @@ pub static XA_SELOB_SIZE: i32 = 128;
 
 // ========================= End of auto generated code ==========================
 
+pub fn load_file(b3_file: &str) -> Result<(), String> {
+    let result = unsafe { ObsLoadFile(GetSetString::from(b3_file).pointer()) };
+    match result {
+        0 => Ok(()),
+        _ => Err(format!("Error loading B3 file: {}", b3_file)),
+    }
+}
+
+pub fn clear() {
+    unsafe {
+        ObsRemoveAll();
+    }
+}
+
+pub fn remove(obs_key: i64) {
+    unsafe {
+        ObsRemove(obs_key);
+    }
+}
+
+pub fn get_count() -> i32 {
+    unsafe { ObsGetCount() }
+}
+
+pub fn get_keys(order: i32) -> Vec<i64> {
+    let count = get_count() as usize;
+    let mut keys = vec![0_i64; count];
+    unsafe {
+        ObsGetLoaded(order, keys.as_mut_ptr());
+    }
+    keys
+}
+
+pub fn parse_all() -> Result<Vec<ParsedB3>, String> {
+    let keys = get_keys(IDX_ORDER_QUICK);
+    let mut parsed_obs = Vec::new();
+    for key in keys {
+        match parse_key(key) {
+            Ok(obs) => parsed_obs.push(obs),
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(parsed_obs)
+}
+
+pub fn parse_key(obs_key: i64) -> Result<ParsedB3, String> {
+    let mut sec_char = GetSetString::new();
+    let mut sat_num: i32 = 0;
+    let mut sen_num: i32 = 0;
+    let mut obs_time_ds50utc: f64 = 0.0;
+    let mut el_or_dec: f64 = 0.0;
+    let mut az_or_ra: f64 = 0.0;
+    let mut slant_range: f64 = 0.0;
+    let mut range_rate_or_equinox: f64 = 0.0;
+    let mut el_rate: f64 = 0.0;
+    let mut az_rate: f64 = 0.0;
+    let mut range_accel: f64 = 0.0;
+    let mut obs_type = GetSetString::new();
+    let mut track_ind: i32 = 0;
+    let mut astat: i32 = 0;
+    let mut site_tag: i32 = 0;
+    let mut spadoc_tag: i32 = 0;
+    let mut position_arr: [f64; 3] = [0.0; 3];
+    let mut _velocity: [f64; 3] = [0.0; 3];
+    let mut _ext_arr: [f64; 128] = [0.0; 128];
+
+    let result = unsafe {
+        ObsGetAllFields(
+            obs_key,
+            sec_char.pointer(),
+            &mut sat_num,
+            &mut sen_num,
+            &mut obs_time_ds50utc,
+            &mut el_or_dec,
+            &mut az_or_ra,
+            &mut slant_range,
+            &mut range_rate_or_equinox,
+            &mut el_rate,
+            &mut az_rate,
+            &mut range_accel,
+            obs_type.pointer(),
+            &mut track_ind,
+            &mut astat,
+            &mut site_tag,
+            &mut spadoc_tag,
+            &mut position_arr,
+            &mut _velocity,
+            &mut _ext_arr,
+        )
+    };
+
+    let obs_type_char: c_char = obs_type.value().as_bytes().first().copied().unwrap_or(b'X') as c_char;
+    let b3_type = unsafe { ObsTypeCToI(obs_type_char) };
+    let mut azimuth: Option<f64> = None;
+    let mut right_ascension: Option<f64> = None;
+    let mut elevation: Option<f64> = None;
+    let mut declination: Option<f64> = None;
+    let mut year_of_equinox: Option<i32> = None;
+    let mut range_rate: Option<f64> = None;
+    let mut range: Option<f64> = None;
+    let mut elevation_rate: Option<f64> = None;
+    let mut azimuth_rate: Option<f64> = None;
+    let mut range_acceleration: Option<f64> = None;
+    let mut position = None;
+    match b3_type {
+        0 => {
+            range_rate = Some(range_rate_or_equinox);
+        }
+        1 => {
+            elevation = Some(el_or_dec);
+            azimuth = Some(az_or_ra);
+        }
+        2 => {
+            elevation = Some(el_or_dec);
+            azimuth = Some(az_or_ra);
+            range = Some(slant_range);
+        }
+        3 => {
+            elevation = Some(el_or_dec);
+            azimuth = Some(az_or_ra);
+            range = Some(slant_range);
+            range_rate = Some(range_rate_or_equinox);
+        }
+        4 => {
+            elevation = Some(el_or_dec);
+            azimuth = Some(az_or_ra);
+            range = Some(slant_range);
+            range_rate = Some(range_rate_or_equinox);
+            elevation_rate = Some(el_rate);
+            azimuth_rate = Some(az_rate);
+            range_acceleration = Some(range_accel);
+        }
+        5 => {
+            range = Some(slant_range);
+            declination = Some(el_or_dec);
+            right_ascension = Some(az_or_ra);
+            year_of_equinox = Some(range_rate_or_equinox as i32);
+        }
+        6 => {
+            range = Some(slant_range);
+        }
+        8 => {
+            elevation = Some(el_or_dec);
+            azimuth = Some(az_or_ra);
+            range = Some(slant_range);
+            position = Some(position_arr);
+        }
+        9 => {
+            declination = Some(el_or_dec);
+            right_ascension = Some(az_or_ra);
+            range = Some(slant_range);
+            year_of_equinox = Some(range_rate_or_equinox as i32);
+            position = Some(position_arr);
+        }
+        _ => {}
+    }
+
+    if position.is_none()
+        && let Ok(sensor) = ParsedSensor::from_number(sen_num)
+        && let (Some(latitude), Some(longitude), Some(altitude)) = (sensor.latitude, sensor.longitude, sensor.altitude)
+    {
+        position = Some(astro::llh_to_efg(&[latitude, longitude, altitude]));
+    }
+
+    match result {
+        0 => Ok(ParsedB3 {
+            classification: sec_char.value().trim().to_string(),
+            norad_id: sat_num,
+            sensor_number: sen_num,
+            epoch: obs_time_ds50utc,
+            azimuth,
+            elevation,
+            declination,
+            right_ascension,
+            range,
+            range_rate,
+            elevation_rate,
+            azimuth_rate,
+            range_acceleration,
+            year_of_equinox,
+            observation_type: b3_type,
+            track_position: track_ind,
+            association_status: astat,
+            site_tag,
+            spadoc_tag,
+            position,
+        }),
+        _ => Err(get_last_error_message()),
+    }
+}
 pub struct ParsedB3 {
     pub classification: String,
     pub norad_id: i32,
@@ -1163,12 +1353,7 @@ impl ParsedB3 {
             )
         };
 
-        let obs_type_char: c_char = obs_type
-            .value()
-            .as_bytes()
-            .first()
-            .copied()
-            .unwrap_or(b'X') as c_char;
+        let obs_type_char: c_char = obs_type.value().as_bytes().first().copied().unwrap_or(b'X') as c_char;
         let b3_type = unsafe { ObsTypeCToI(obs_type_char) };
         let mut azimuth: Option<f64> = None;
         let mut right_ascension: Option<f64> = None;
@@ -1290,12 +1475,7 @@ impl ParsedB3 {
         self._validate_fields()?;
         let mut output_str = GetSetString::new();
         let ob_type: c_char = unsafe { ObsTypeIToC(self.observation_type) };
-        let sec_char: c_char = self
-            .classification
-            .as_bytes()
-            .first()
-            .copied()
-            .unwrap_or(b'U') as c_char;
+        let sec_char: c_char = self.classification.as_bytes().first().copied().unwrap_or(b'U') as c_char;
 
         unsafe {
             ObsFieldsToB3Card(

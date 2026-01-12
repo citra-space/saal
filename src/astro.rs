@@ -727,6 +727,14 @@ pub fn topo_teme_to_meme(yr_of_equinox: i32, ds50_utc: f64, ra: f64, dec: f64) -
     (ra_out, dec_out)
 }
 
+pub fn llh_to_efg(pos_lla: &[f64; 3]) -> [f64; 3] {
+    let mut pos_efg = [0.0; 3];
+    unsafe {
+        LLHToEFGPos(pos_lla, &mut pos_efg);
+    }
+    pos_efg
+}
+
 pub fn osculating_to_mean(xa_osc: &[f64; XA_KEP_SIZE]) -> [f64; XA_KEP_SIZE] {
     let mut xa_mean = [0.0; XA_KEP_SIZE];
     unsafe {

@@ -93,6 +93,13 @@ impl From<ParsedSensor> for PyParsedSensor {
 
 #[pymethods]
 impl PyParsedSensor {
+    #[staticmethod]
+    fn from_number(number: i32) -> PyResult<PyParsedSensor> {
+        ParsedSensor::from_number(number)
+            .map(PyParsedSensor::from)
+            .map_err(PyRuntimeError::new_err)
+    }
+
     #[getter(key)]
     fn get_key(&self) -> PyResult<i64> {
         Ok(self.inner.key)

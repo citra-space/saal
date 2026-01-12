@@ -3,7 +3,7 @@ from typing import Generator
 
 import pytest
 
-from pysaal import MainInterface, ObsInterface, ParsedB3, TimeInterface
+from pysaal import MainInterface, ObsInterface, ParsedB3, TimeInterface, SensorInterface
 
 LOCK = threading.RLock()
 
@@ -107,3 +107,20 @@ def test_parsed_b3_from_line_matches_fields(
     assert parsed.position[0] == pytest.approx(-1207.88, rel=0.0, abs=1.0e-7)
     assert parsed.position[1] == pytest.approx(3706.326, rel=0.0, abs=1.0e-7)
     assert parsed.position[2] == pytest.approx(5814.97, rel=0.0, abs=1.0e-7)
+
+
+def test_load_file() -> None:
+    interface = ObsInterface()
+    sensor_interface = SensorInterface()
+    sensor_interface.load_file("tests/data/sensors.dat")
+    interface.load_file("tests/data/test-b3-obs.txt")
+    count = interface.get_count()
+    obs = interface.parse_all()
+    interface.clear()
+    sensor_interface.clear()
+    assert count == 5053
+    with_pos = 0
+    for ob in obs:
+        if ob.position:
+            with_pos += 1
+    assert with_pos == 5053

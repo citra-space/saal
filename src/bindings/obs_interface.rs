@@ -1,8 +1,8 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use crate::obs::{self, ParsedB3};
 use crate::DLL_VERSION;
+use crate::obs::{self, ParsedB3};
 
 #[pyclass]
 pub struct ObsInterface {
@@ -33,8 +33,40 @@ impl ObsInterface {
             .map(PyParsedB3::from)
             .map_err(PyRuntimeError::new_err)
     }
-}
 
+    fn parse_key(&self, obs_key: i64) -> PyResult<PyParsedB3> {
+        obs::parse_key(obs_key)
+            .map(PyParsedB3::from)
+            .map_err(PyRuntimeError::new_err)
+    }
+
+    fn parse_all(&self) -> PyResult<Vec<PyParsedB3>> {
+        let observations = obs::parse_all().map_err(PyRuntimeError::new_err)?;
+        Ok(observations.into_iter().map(PyParsedB3::from).collect())
+    }
+
+    fn load_file(&self, file_path: String) -> PyResult<()> {
+        obs::load_file(&file_path).map_err(PyRuntimeError::new_err)
+    }
+
+    fn clear(&self) -> PyResult<()> {
+        obs::clear();
+        Ok(())
+    }
+
+    fn remove(&self, obs_key: i64) -> PyResult<()> {
+        obs::remove(obs_key);
+        Ok(())
+    }
+
+    fn get_count(&self) -> PyResult<i32> {
+        Ok(obs::get_count())
+    }
+
+    fn get_keys(&self, order: i32) -> PyResult<Vec<i64>> {
+        Ok(obs::get_keys(order))
+    }
+}
 
 #[pyclass(name = "ParsedB3")]
 pub struct PyParsedB3 {

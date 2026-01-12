@@ -757,6 +757,15 @@ pub struct ParsedSensor {
 }
 
 impl ParsedSensor {
+    pub fn from_number(number: i32) -> Result<ParsedSensor, String> {
+        let key = unsafe { SensorGetSenKey(number) };
+        if key > 0 {
+            ParsedSensor::from_key(key)
+        } else {
+            Err(get_last_error_message())
+        }
+    }
+
     pub fn from_key(key: i64) -> Result<ParsedSensor, String> {
         let (xa_sen, xs_sen) = get_arrays(key)?;
 
