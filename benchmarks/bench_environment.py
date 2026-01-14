@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import EnvironmentInterface
+from pysaal import EnvironmentInterface
 
 
 @pytest.fixture(scope="module")
@@ -11,15 +11,11 @@ def environment_iface() -> EnvironmentInterface:
     return EnvironmentInterface()
 
 
-def test_bench_environment_info(
-    benchmark: BenchmarkFixture, environment_iface: EnvironmentInterface
-) -> None:
+def test_bench_environment_info(benchmark: BenchmarkFixture, environment_iface: EnvironmentInterface) -> None:
     benchmark(lambda: environment_iface.info)
 
 
-def test_bench_environment_earth_radius(
-    benchmark: BenchmarkFixture, environment_iface: EnvironmentInterface
-) -> None:
+def test_bench_environment_earth_radius(benchmark: BenchmarkFixture, environment_iface: EnvironmentInterface) -> None:
     benchmark(lambda: environment_iface.earth_radius)
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import AstroInterface
+from pysaal import AstroInterface
 
 KEP = [26558.482, 0.006257, 54.935, 234.764, 165.472, 217.612]
 EQNX = [

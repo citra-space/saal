@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import MainInterface
+from pysaal import MainInterface
 
 
 @pytest.fixture(scope="module")

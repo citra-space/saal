@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import SensorInterface
+from pysaal import SensorInterface
 
 SENSOR_CARD = "211  3381724 -25333969 -1521161 -5083089  3530462  U SOCORRO CAM1              S"
 NOISE_CARD = "211 5   0.0003 0.0003 0.0000 0.0000  -0.0005 -0.0003  0.0000  0.0000  0.0000  BS"

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import ObsInterface, ParsedB3
+from pysaal import ObsInterface, ParsedB3
 
 B3_CARD = "U0001151013352142520112J85202 2220398         -01207880+03706326+05814970 9 4  10001100011"
 

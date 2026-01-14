@@ -5,7 +5,7 @@ from importlib import resources
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from saal import TimeInterface
+from pysaal import TimeInterface
 
 
 @pytest.fixture(scope="module")
