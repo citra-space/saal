@@ -31,7 +31,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/io \
             -e HOME=/root \
-            -w /io quay.io/pypa/manylinux2014_x86_64 \
+            -w /io quay.io/pypa/manylinux_2_34_x86_64 \
             bash -c '
               yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
               export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
@@ -46,7 +46,7 @@ jobs:
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
               PIP="${PY_BIN%/python}/pip" && \
               $PIP install --upgrade pip setuptools wheel auditwheel && \
-              maturin build --release --compatibility manylinux2014 -i $PY_BIN
+              maturin build --release --compatibility manylinux_2_34 -i $PY_BIN
             '
 
       - name: Upload wheels
@@ -77,7 +77,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/io \
             -e HOME=/root \
-            -w /io quay.io/pypa/manylinux2014_aarch64 \
+            -w /io quay.io/pypa/manylinux_2_34_aarch64 \
             bash -c '
               yum install -y curl gcc gcc-c++ make openssl-devel openssl && \
               export CARGO_HOME="$HOME/.cargo" && export RUSTUP_HOME="$HOME/.rustup" && \
@@ -92,7 +92,7 @@ jobs:
               PY_BIN=/opt/python/cp${TAG}-cp${TAG}/bin/python && \
               PIP="${PY_BIN%/python}/pip" && \
               $PIP install --upgrade pip setuptools wheel auditwheel && \
-              maturin build --release --compatibility manylinux2014 -i $PY_BIN
+              maturin build --release --compatibility manylinux_2_34 -i $PY_BIN
             '
 
       - name: Upload wheels
