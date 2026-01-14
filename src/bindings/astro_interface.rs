@@ -7,8 +7,8 @@ use crate::astro::{
     equinoctial_to_keplerian, get_dll_info, get_earth_obstruction_angles, get_jpl_sun_and_moon_position,
     gst_ra_dec_to_az_el, gst_teme_to_lla, horizon_to_teme, j2000_to_ecr, j2000_to_efg, j2000_to_teme,
     keplerian_to_cartesian, keplerian_to_equinoctial, kozai_to_brouwer, lla_to_teme, llh_to_efg,
-    mean_motion_to_sma,
-    osculating_to_mean, point_is_sunlit, set_jpl_ephemeris_file_path, sma_to_mean_motion, teme_to_ecr,
+    mean_motion_to_sma, osculating_to_mean, point_is_sunlit, position_velocity_mu_to_equinoctial,
+    position_velocity_to_equinoctial, set_jpl_ephemeris_file_path, sma_to_mean_motion, teme_to_ecr,
     teme_to_efg, teme_to_j2000, teme_to_topo, time_ra_dec_to_az_el, time_teme_to_lla, topo_meme_to_teme,
     topo_teme_to_meme,
 };
@@ -72,6 +72,14 @@ impl AstroInterface {
 
     fn osculating_to_mean(&self, osc: [f64; 6]) -> PyResult<[f64; 6]> {
         Ok(osculating_to_mean(&osc))
+    }
+
+    fn position_velocity_to_equinoctial(&self, posvel: [f64; 6]) -> PyResult<[f64; 6]> {
+        Ok(position_velocity_to_equinoctial(&posvel))
+    }
+
+    fn position_velocity_mu_to_equinoctial(&self, posvel: [f64; 6], mu: f64) -> PyResult<[f64; 6]> {
+        Ok(position_velocity_mu_to_equinoctial(&posvel, mu))
     }
 
     fn set_jpl_ephemeris_file_path(&self, file_path: String) -> PyResult<()> {

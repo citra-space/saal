@@ -544,6 +544,25 @@ pub fn get_dll_info() -> String {
     info.value()
 }
 
+pub fn position_velocity_mu_to_equinoctial(posvel: &[f64; 6], mu: f64) -> [f64; XA_EQNX_SIZE] {
+    let mut xa_eqnx = [0.0; XA_EQNX_SIZE];
+    let pos = [posvel[0], posvel[1], posvel[2]];
+    let vel = [posvel[3], posvel[4], posvel[5]];
+    unsafe {
+        PosVelMuToEqnx(&pos, &vel, mu, &mut xa_eqnx);
+    }
+    xa_eqnx
+}
+
+pub fn position_velocity_to_equinoctial(posvel: &[f64; 6]) -> [f64; XA_EQNX_SIZE] {
+    let mut xa_eqnx = [0.0; XA_EQNX_SIZE];
+    let pos = [posvel[0], posvel[1], posvel[2]];
+    let vel = [posvel[3], posvel[4], posvel[5]];
+    unsafe {
+        PosVelToEqnx(&pos, &vel, &mut xa_eqnx);
+    }
+    xa_eqnx
+}
 pub fn sma_to_mean_motion(semi_major_axis: f64) -> f64 {
     unsafe { AToN(semi_major_axis) }
 }
